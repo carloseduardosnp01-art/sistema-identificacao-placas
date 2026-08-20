@@ -1,0 +1,18 @@
+# Sistema de Identificação de Placas - Dependências
+
+# Detecção com YOLO
+ultralytics>=8.0.0
+
+# Processamento de Imagens e Visão Computacional
+opencv-python>=4.8.0
+Pillow>=9.5.0
+numpy>=1.24.0
+
+# Reconhecimento de Caracteres (OCR)
+easyocr>=1.7.0
+
+# Interface Gráfica
+streamlit>=1.30.0
+
+# Manipulação de Dados
+pandas>=2.0.0
