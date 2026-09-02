@@ -89,24 +89,55 @@ aba1, aba2, aba3 = st.tabs([
 
 # --- ABA 1: IDENTIFICAÇÃO POR FOTO ---
 with aba1:
-    st.subheader("Envie a foto de um veículo para análise")
-    arquivo_imagem = st.file_uploader(
-        "Selecione uma imagem (JPG, JPEG, PNG):",
-        type=["jpg", "jpeg", "png"]
+    st.subheader("Análise de Placas e Consulta de Segurança")
+    
+    modo_entrada = st.radio(
+        "Como deseja fornecer a imagem?",
+        ["📁 Fazer upload de foto do computador", "🖼️ Escolher imagem da Galeria de Testes (Dataset)"],
+        horizontal=True
     )
 
-    if arquivo_imagem is not None:
-        # Carrega a imagem
-        img_pil = Image.open(arquivo_imagem).convert("RGB")
+    img_pil = None
+
+    if modo_entrada == "📁 Fazer upload de foto do computador":
+        arquivo_imagem = st.file_uploader(
+            "Selecione uma imagem (JPG, JPEG, PNG):",
+            type=["jpg", "jpeg", "png"]
+        )
+        if arquivo_imagem is not None:
+            img_pil = Image.open(arquivo_imagem).convert("RGB")
+    else:
+        # Busca imagens disponíveis na pasta de exemplos e test_images
+        pastas_exemplos = [os.path.join(BASE_DIR, "data", "exemplos"), os.path.join(BASE_DIR, "data", "test_images")]
+        arquivos_disponiveis = []
+        for p in pastas_exemplos:
+            if os.path.exists(p):
+                for arq in os.listdir(p):
+                    if arq.lower().endswith((".png", ".jpg", ".jpeg")) and not arq.startswith("rodosol_") and not arq.startswith("ufpr_"):
+                        arquivos_disponiveis.append(os.path.join(p, arq))
+
+        if arquivos_disponiveis:
+            mapa_nomes = {os.path.basename(c): c for c in arquivos_disponiveis}
+            opcao_selecionada = st.selectbox(
+                "Selecione um veículo do banco de testes para analisar:",
+                options=list(mapa_nomes.keys())
+            )
+            if opcao_selecionada:
+                caminho_escolhido = mapa_nomes[opcao_selecionada]
+                img_pil = Image.open(caminho_escolhido).convert("RGB")
+        else:
+            st.info("Nenhuma imagem encontrada na galeria.")
+
+    if img_pil is not None:
         img_np = np.array(img_pil)
         img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
 
         col_orig, col_proc = st.columns([1, 1])
 
         with col_orig:
-            st.image(img_pil, caption="Imagem Original Enviada", use_container_width=True)
+            st.image(img_pil, caption="Imagem do Veículo Selecionada", use_container_width=True)
 
-        with st.spinner("Analisando imagem com YOLO e OCR..."):
+        with st.spinner("Processando com YOLO e OCR..."):
             placas = detector.detectar(img_bgr, confianca_minima=confianca_yolo)
 
         if not placas:

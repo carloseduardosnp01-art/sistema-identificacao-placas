@@ -17,7 +17,9 @@ from src.utils import (
     limpar_texto,
     classificar_padrao_placa,
     tentar_corrigir_placa,
-    formatar_placa_exibicao
+    extrair_melhor_placa_de_texto,
+    formatar_placa_exibicao,
+    desenhar_resultado
 )
 from src.database import (
     inicializar_banco,
@@ -60,6 +62,17 @@ class TesteSistemaPlacas(unittest.TestCase):
         self.assertEqual(corrigido_merc, "BRA2E10")
         self.assertEqual(padrao_merc, "Mercosul")
 
+    def test_extrair_melhor_placa_com_ruidos(self):
+        # Texto com BRASIL e cauda de caracteres extras
+        placa_extraida, padrao = extrair_melhor_placa_de_texto("BRASILPLW8A46CLSIL")
+        self.assertEqual(placa_extraida, "PLW8A46")
+        self.assertEqual(padrao, "Mercosul")
+
+        # Texto com ruído anterior e padrão antigo
+        placa_antiga, padrao_ant = extrair_melhor_placa_de_texto("XABC1234YZ")
+        self.assertEqual(placa_antiga, "ABC1234")
+        self.assertEqual(padrao_ant, "Antigo")
+
     def test_formatacao_exibicao(self):
         self.assertEqual(formatar_placa_exibicao("ABC1234"), "ABC-1234")
         self.assertEqual(formatar_placa_exibicao("BRA2E19"), "BRA-2E19")
@@ -91,6 +104,18 @@ class TesteSistemaPlacas(unittest.TestCase):
         resultado = consultar_placa("TEST123", self.db_teste)
         self.assertIsNotNone(resultado)
         self.assertEqual(resultado["marca"], "Ford")
+
+    def test_desenhar_resultado(self):
+        import numpy as np
+        img_dummy = np.zeros((300, 400, 3), dtype=np.uint8)
+        img_out = desenhar_resultado(
+            img_dummy,
+            (50, 50, 200, 100),
+            "BRA2E19",
+            status_roubo=1
+        )
+        self.assertIsNotNone(img_out)
+        self.assertEqual(img_out.shape, (300, 400, 3))
 
 
 if __name__ == "__main__":

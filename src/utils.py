@@ -4,7 +4,7 @@ Contém regras de formatação (Mercosul e Cinza/Antiga), correções de OCR e e
 """
 
 import re
-from typing import Tuple, Optional, Dict, Any
+from typing import Tuple, Optional, Dict, Any, List
 
 try:
     import cv2
@@ -17,7 +17,7 @@ except ImportError:
 PADRAO_MERCOSUL = re.compile(r"^[A-Z]{3}[0-9][A-Z][0-9]{2}$")  # Ex: BRA2E19
 PADRAO_ANTIGO = re.compile(r"^[A-Z]{3}[0-9]{4}$")              # Ex: ABC1234
 
-# Mapeamentos para correção de confusões clássicas de OCR
+# Mapeamentos para correção de confusões clássicas de OCR na fonte FE-Schrift
 LETRA_PARA_NUMERO = {
     'O': '0', 'D': '0', 'Q': '0',
     'I': '1', 'L': '1', 'J': '1',
@@ -41,6 +41,12 @@ NUMERO_PARA_LETRA = {
     '7': 'T',
     '8': 'B',
 }
+
+# Palavras e ruídos conhecidos que aparecem em molduras de placas brasileiras
+RUIDOS_CONHECIDOS = [
+    "BRASIL", "BRAS1L", "MERCOSUR", "MERCOSUL", 
+    "CLSIL", "PSL", "SIL", "BR"
+]
 
 
 def limpar_texto(texto: str) -> str:
@@ -85,6 +91,8 @@ def tentar_corrigir_placa(texto: str) -> Tuple[str, Optional[str]]:
     for i in range(3):
         if chars[i].isdigit() and chars[i] in NUMERO_PARA_LETRA:
             chars[i] = NUMERO_PARA_LETRA[chars[i]]
+        # Correção específica: K na 2ª posição de placas como ENZ virando EKZ
+        # Se for K mas não fecha padrão, o algoritmo pode testar variações se necessário
 
     # Regra para a 4ª posição: SEMPRE número
     if chars[3].isalpha() and chars[3] in LETRA_PARA_NUMERO:
@@ -127,7 +135,73 @@ def tentar_corrigir_placa(texto: str) -> Tuple[str, Optional[str]]:
         if PADRAO_ANTIGO.match(texto_antigo):
             return texto_antigo, "Antigo"
 
-    return limpo, None
+    # Se ainda não bateu, tenta avaliar se trocar K por N nas 3 primeiras posições resolve
+    candidato_k_n = list(chars)
+    for i in range(3):
+        if candidato_k_n[i] == 'K':
+            candidato_k_n[i] = 'N'
+    texto_kn = "".join(candidato_k_n)
+    if PADRAO_MERCOSUL.match(texto_kn):
+        return texto_kn, "Mercosul"
+    if PADRAO_ANTIGO.match(texto_kn):
+        return texto_kn, "Antigo"
+
+    return "".join(chars), None
+
+
+def extrair_melhor_placa_de_texto(texto_bruto: str) -> Tuple[str, Optional[str]]:
+    """
+    Varre um texto bruto retornado pelo OCR e extrai rigorosamente os 7 caracteres
+    principais da placa brasileira, eliminando ruídos de moldura e cabeçalho.
+    """
+    limpo = limpar_texto(texto_bruto)
+    if not limpo:
+        return "", None
+
+    # 1. Substitui ligaduras comuns de OCR (ex: 1H -> W, VV -> W)
+    limpo_ligaduras = limpo.replace("1H", "W").replace("VV", "W")
+
+    # 2. Remove ruídos conhecidos
+    for ruido in RUIDOS_CONHECIDOS:
+        limpo_ligaduras = limpo_ligaduras.replace(ruido, "")
+        limpo = limpo.replace(ruido, "")
+
+    # Se tiver exatamente 7 caracteres, tenta corrigir
+    if len(limpo_ligaduras) == 7:
+        res, padrao = tentar_corrigir_placa(limpo_ligaduras)
+        if padrao:
+            return res, padrao
+
+    if len(limpo) == 7:
+        res, padrao = tentar_corrigir_placa(limpo)
+        if padrao:
+            return res, padrao
+
+    # Se tiver mais de 7 caracteres, testa janelas deslizantes de tamanho 7
+    candidatos_validos = []
+    textos_para_testar = list(set([limpo, limpo_ligaduras]))
+
+    for txt in textos_para_testar:
+        if len(txt) >= 7:
+            for i in range(len(txt) - 6):
+                janela = txt[i:i + 7]
+                texto_corrigido, padrao = tentar_corrigir_placa(janela)
+                if padrao:
+                    score = sum(1 for a, b in zip(janela, texto_corrigido) if a == b)
+                    # Bônus se a janela começa no início da string
+                    if i == 0:
+                        score += 0.5
+                    candidatos_validos.append((score, texto_corrigido, padrao))
+
+    if candidatos_validos:
+        candidatos_validos.sort(key=lambda x: x[0], reverse=True)
+        return candidatos_validos[0][1], candidatos_validos[0][2]
+
+    # Se ainda não encontrou padrão exato, NUNCA retorna mais de 7 caracteres
+    # Pega os primeiros 7 caracteres da string limpa
+    candidato_final = limpo_ligaduras[:7] if len(limpo_ligaduras) >= 7 else limpo[:7]
+    res, padrao = tentar_corrigir_placa(candidato_final)
+    return res or candidato_final, padrao
 
 
 def formatar_placa_exibicao(placa: str) -> str:
@@ -153,6 +227,7 @@ def desenhar_resultado(
     """
     if cv2 is None or imagem is None:
         return imagem
+    img_desenhada = imagem.copy()
     x1, y1, x2, y2 = bbox
 
     # Define a cor de acordo com o status
