@@ -215,21 +215,29 @@ with aba1:
 
                     if dados:
                         if dados["status_roubo"] == 1:
-                            st.error(f"""
-                            🚨 **ALERTA DE SEGURANÇA: VEÍCULO ROUBADO / FURTADO!**
-                            - **Veículo:** {dados['marca']} {dados['modelo']} ({dados['cor']} / {dados['ano']})
-                            - **Boletim de Ocorrência:** {dados['boletim_ocorrencia']}
-                            - **Data do Registro:** {dados['data_ocorrencia']}
-                            - **Local:** {dados['cidade']} - {dados['estado']}
-                            """)
+                            st.markdown(f"""
+                            <div style="background-color: #ff4b4b22; border-left: 5px solid #ff4b4b; padding: 12px; border-radius: 6px; margin-top: 10px;">
+                                <h4 style="color: #ff4b4b; margin: 0 0 8px 0;">🚨 ALERTA: VEÍCULO ROUBADO / FURTADO!</h4>
+                                <p style="margin: 3px 0;"><b>Veículo:</b> {dados['marca']} {dados['modelo']} ({dados['cor']} / {dados['ano']})</p>
+                                <p style="margin: 3px 0;"><b>B.O.:</b> {dados.get('boletim_ocorrencia', 'BO-2024')}</p>
+                                <p style="margin: 3px 0;"><b>Data:</b> {dados.get('data_ocorrencia', 'Não informada')}</p>
+                                <p style="margin: 3px 0;"><b>Local:</b> {dados.get('cidade', '')} - {dados.get('estado', '')}</p>
+                            </div>
+                            """, unsafe_allow_html=True)
                         else:
-                            st.success(f"""
-                            ✅ **SITUAÇÃO REGULAR: Sem queixa de roubo/furto.**
-                            - **Veículo:** {dados['marca']} {dados['modelo']} ({dados['cor']} / {dados['ano']})
-                            - **Cidade/UF:** {dados['cidade']} - {dados['estado']}
-                            """)
+                            st.markdown(f"""
+                            <div style="background-color: #00cc6622; border-left: 5px solid #00cc66; padding: 12px; border-radius: 6px; margin-top: 10px;">
+                                <h4 style="color: #00cc66; margin: 0 0 8px 0;">✅ SITUAÇÃO REGULAR: Sem queixa</h4>
+                                <p style="margin: 3px 0;"><b>Veículo:</b> {dados['marca']} {dados['modelo']} ({dados['cor']} / {dados['ano']})</p>
+                                <p style="margin: 3px 0;"><b>Local:</b> {dados.get('cidade', '')} - {dados.get('estado', '')}</p>
+                            </div>
+                            """, unsafe_allow_html=True)
                     else:
-                        st.warning(f"⚠️ Placa `{formatar_placa_exibicao(texto)}` não encontrada na base de dados de teste.")
+                        st.markdown(f"""
+                        <div style="background-color: #ffaa0022; border-left: 5px solid #ffaa00; padding: 12px; border-radius: 6px; margin-top: 10px;">
+                            <h5 style="color: #ffaa00; margin: 0;">⚠️ Placa <code>{formatar_placa_exibicao(texto)}</code> não cadastrada no banco de teste.</h5>
+                        </div>
+                        """, unsafe_allow_html=True)
 
 
 # --- ABA 2: BASE DE DADOS DE VEÍCULOS ---
