@@ -75,4 +75,16 @@ class DetectorPlacas:
                         "confianca": conf
                     })
 
+        # Fallback inteligente: se nenhuma placa foi detectada, mas a imagem enviada já é um close-up/recorte direto de placa
+        if not placas_detectadas and imagem is not None and imagem.size > 0:
+            h, w = imagem.shape[:2]
+            aspect_ratio = w / float(max(1, h))
+            # Proporção típica de placa veicular (entre 1.8 e 5.5)
+            if 1.8 <= aspect_ratio <= 5.5 or (w > 100 and h > 30 and h < 500):
+                placas_detectadas.append({
+                    "bbox": (0, 0, w, h),
+                    "crop": imagem.copy(),
+                    "confianca": 0.90
+                })
+
         return placas_detectadas
