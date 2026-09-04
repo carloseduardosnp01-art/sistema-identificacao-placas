@@ -40,21 +40,50 @@ def obter_leitor_easyocr():
 
 
 def pre_processar_placa(img_placa: np.ndarray) -> np.ndarray:
-    """Retorna a placa original em alta definição natural (sem cortes ou distorções de cor)."""
+    """Retorna a placa original na resolução nativa ideal (320px) para o YOLO 2."""
     if img_placa is None or img_placa.size == 0:
         return img_placa
 
     h, w = img_placa.shape[:2]
-    escala = 160.0 / max(1, h)
-    nova_w = int(w * escala)
-    return cv2.resize(img_placa, (nova_w, 160), interpolation=cv2.INTER_LANCZOS4)
+    escala = 320.0 / max(1, w)
+    nova_h = int(h * escala)
+    return cv2.resize(img_placa, (320, max(64, nova_h)), interpolation=cv2.INTER_LANCZOS4)
+
+
+def filtrar_caracteres_duplicados(caracteres: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Remove detecções duplicadas ou sobrepostas no mesmo caractere (mesma coluna X),
+    mantendo apenas a predição com maior nível de confiança.
+    """
+    if not caracteres:
+        return []
+
+    # Ordena por confiança decrescente
+    ordenados_conf = sorted(caracteres, key=lambda c: c["conf"], reverse=True)
+    selecionados = []
+
+    for c in ordenados_conf:
+        # Verifica se já existe outro caractere selecionado muito próximo no eixo X
+        sobreposto = False
+        for s in selecionados:
+            largura_ref = max(c["w"], s["w"])
+            dist_x = abs(c["x_center"] - s["x_center"])
+            if dist_x < (largura_ref * 0.55):
+                sobreposto = True
+                break
+        if not sobreposto:
+            selecionados.append(c)
+
+    # Reordena da esquerda para a direita (posição X)
+    return sorted(selecionados, key=lambda c: c["x_center"])
 
 
 def extrair_texto_placa(img_placa: np.ndarray) -> Dict[str, Any]:
     """
-    Pipeline de Extração de Placas:
-    1. Se models/yolo_caracteres.pt existir, usa o YOLO 2 (Detecção direta de letras e números)
-    2. Caso contrário, executa o leitor OCR com a placa completa natural
+    Pipeline de Extração de Placas com YOLO 2 de Caracteres:
+    1. Detecta as caixas individuais das 36 classes (0-9 e A-Z)
+    2. Suprime duplicações com NMS espacial
+    3. Constrói a sequência e valida com o padrão brasileiro oficial
     """
     if img_placa is None or img_placa.size == 0:
         return {
@@ -68,10 +97,10 @@ def extrair_texto_placa(img_placa: np.ndarray) -> Dict[str, Any]:
     img_hd = pre_processar_placa(img_placa)
     yolo_chars = obter_modelo_yolo_caracteres()
 
-    # --- MODO 1: YOLO 2 DE CARACTERES (MÁXIMA PRECISÃO) ---
+    # --- MODO 1: YOLO 2 DE CARACTERES (36 CLASSES) ---
     if yolo_chars is not None:
         try:
-            res = yolo_chars(img_hd, conf=0.25, verbose=False)[0]
+            res = yolo_chars(img_hd, conf=0.15, iou=0.45, imgsz=320, verbose=False)[0]
             boxes = res.boxes
             
             if len(boxes) > 0:
@@ -82,26 +111,28 @@ def extrair_texto_placa(img_placa: np.ndarray) -> Dict[str, Any]:
                     conf = float(box.conf[0])
                     nome_char = res.names[cls_id]
                     caracteres_detectados.append({
-                        "x": x1,
+                        "x_center": (x1 + x2) / 2.0,
+                        "w": (x2 - x1),
                         "char": str(nome_char).upper(),
                         "conf": conf
                     })
                 
-                # Ordena os caracteres da esquerda para a direita pela posição X
-                caracteres_detectados = sorted(caracteres_detectados, key=lambda c: c["x"])
+                # Filtra duplicatas e ordena da esquerda para a direita
+                chars_finais = filtrar_caracteres_duplicados(caracteres_detectados)
                 
-                texto_bruto = "".join([c["char"] for c in caracteres_detectados])
-                conf_media = float(np.mean([c["conf"] for c in caracteres_detectados]))
+                texto_bruto = "".join([c["char"] for c in chars_finais])
+                conf_media = float(np.mean([c["conf"] for c in chars_finais])) if chars_finais else 0.0
                 
                 texto_corrigido, padrao = extrair_melhor_placa_de_texto(texto_bruto)
                 
-                return {
-                    "texto_bruto": texto_bruto,
-                    "texto_corrigido": texto_corrigido[:7],
-                    "padrao": padrao,
-                    "confianca": conf_media,
-                    "img_processada": img_hd
-                }
+                if len(texto_corrigido) >= 6:
+                    return {
+                        "texto_bruto": texto_bruto,
+                        "texto_corrigido": texto_corrigido[:7],
+                        "padrao": padrao,
+                        "confianca": conf_media,
+                        "img_processada": img_hd
+                    }
         except Exception as e:
             print(f"[OCR] Erro na inferência do YOLO 2: {e}")
 

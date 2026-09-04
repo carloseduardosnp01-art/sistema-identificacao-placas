@@ -6,11 +6,10 @@ import os
 import glob
 import cv2
 from src.detector import DetectorPlacas
-from src.ocr import extrair_texto_placa, obter_leitor_ocr
+from src.ocr import extrair_texto_placa, pre_processar_placa
 
 def testar_pipeline_completo():
     detector = DetectorPlacas()
-    reader = obter_leitor_ocr()
     
     pasta_testes = os.path.join("data", "test_images")
     imagens = glob.glob(os.path.join(pasta_testes, "*.*"))
