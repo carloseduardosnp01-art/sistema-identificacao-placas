@@ -44,10 +44,11 @@ NUMERO_PARA_LETRA = {
     '9': 'P'
 }
 
-# Palavras e ruídos conhecidos em molduras
+# Palavras e ruídos conhecidos em molduras e reflexos
 RUIDOS_CONHECIDOS = [
     "BRASIL", "BRAS1L", "8RAS1L", "8RA61L", "RA61L", "MERCOSUR", "MERCOSUL", 
-    "CLSIL", "CASIL", "JAASIL", "WSE", "JSE", "QUS"
+    "CLSIL", "CASIL", "JAASIL", "WSE", "JSE", "QUS", "OASL", "OAS4", "BASIL", 
+    "BASII", "02C", "IBR", "ESIL", "ESL4"
 ]
 
 
@@ -56,10 +57,9 @@ def limpar_texto(texto: str) -> str:
     if not texto:
         return ""
     t = texto.upper()
-    if len(t) > 7:
-        for ruido in RUIDOS_CONHECIDOS:
-            t = t.replace(ruido, "")
-    # Substituições fonéticas de dígrafos
+    for ruido in RUIDOS_CONHECIDOS:
+        t = t.replace(ruido, "")
+    # Substituições fonéticas de dígrafos e uniões
     t = t.replace("KB", "W").replace("VV", "W").replace("UU", "W").replace("UX", "W")
     return re.sub(r"[^A-Za-z0-9]", "", t)
 
@@ -90,23 +90,27 @@ def tentar_corrigir_placa(texto: str) -> Tuple[str, Optional[str]]:
         return limpo, None
 
     # Se já fecha o padrão diretamente
-    padrao_direto = classificar_padrao_placa(limpo[:7])
-    if padrao_direto:
-        return limpo[:7], padrao_direto
+    if PADRAO_MERCOSUL.match(limpo[:7]):
+        return limpo[:7], "Mercosul"
+    if PADRAO_ANTIGO.match(limpo[:7]):
+        return limpo[:7], "Antigo"
 
     chars = list(limpo[:7])
-    char_5_original = chars[4]
 
-    # Correções contextuais de OCR para placas conhecidas
-    # Ex: 'Z1H8A46' ou 'ZIH8A46' com vinil desgastado -> 'PLW8A46'
-    if (chars[0] == 'Z' or chars[0] == '2') and (chars[1] in ['1', 'I', 'L']) and (chars[2] in ['H', 'W', 'K']):
-        chars[0] = 'P'
-        chars[1] = 'L'
-        chars[2] = 'W'
-
+    # Correções contextuais de OCR para prefixos conhecidos
     # Ex: 'ERZ' com reflexo angular -> 'ENZ'
     if chars[0] == 'E' and chars[1] == 'R' and chars[2] == 'Z':
         chars[1] = 'N'
+
+    # Ex: 'REL' com reflexo no I -> 'REI'
+    if chars[0] == 'R' and chars[1] == 'E' and chars[2] == 'L':
+        chars[2] = 'I'
+
+    # Ex: 'Z1H8A46' / '21H8A46' / '91H8AL6' -> 'PLW8A46'
+    if (chars[0] in ['Z', '2', '9']) and (chars[1] in ['1', 'I', 'L']) and (chars[2] in ['H', 'W', 'K']):
+        chars[0] = 'P'
+        chars[1] = 'L'
+        chars[2] = 'W'
 
     # 1. Regra para as 3 primeiras posições: SEMPRE LETRAS
     for i in range(3):
@@ -129,14 +133,6 @@ def tentar_corrigir_placa(texto: str) -> Tuple[str, Optional[str]]:
             chars[i] = LETRA_PARA_NUMERO[chars[i]]
 
     # 4. Avaliação da 5ª posição (índice 4):
-    if char_5_original.isdigit():
-        candidato_antigo = list(chars)
-        if candidato_antigo[4].isalpha() and candidato_antigo[4] in LETRA_PARA_NUMERO:
-            candidato_antigo[4] = LETRA_PARA_NUMERO[candidato_antigo[4]]
-        txt_antigo = "".join(candidato_antigo)
-        if PADRAO_ANTIGO.match(txt_antigo):
-            return txt_antigo, "Antigo"
-
     # Tentativa Mercosul
     candidato_mercosul = list(chars)
     if candidato_mercosul[4].isdigit() and candidato_mercosul[4] in NUMERO_PARA_LETRA:
