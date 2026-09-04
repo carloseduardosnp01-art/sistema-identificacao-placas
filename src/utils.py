@@ -17,17 +17,18 @@ except ImportError:
 PADRAO_MERCOSUL = re.compile(r"^[A-Z]{3}[0-9][A-Z][0-9]{2}$")  # Ex: BRA2E19
 PADRAO_ANTIGO = re.compile(r"^[A-Z]{3}[0-9]{4}$")              # Ex: ABC1234
 
-# Mapeamentos para correção de confusões clássicas de OCR na fonte FE-Schrift
+# Mapeamentos para correção de confusões clássicas de OCR na fonte FE-Schrift (Mercosul e Antigo)
 LETRA_PARA_NUMERO = {
-    'O': '0', 'D': '0', 'Q': '0',
+    'O': '0', 'D': '0', 'Q': '0', 'C': '0',
     'I': '1', 'L': '1', 'J': '1',
     'Z': '2',
     'E': '3',
-    'A': '4',
+    'A': '4', 'U': '4', 'H': '4',
     'S': '5',
-    'G': '6',
-    'T': '7',
+    'G': '6', 'b': '6',
+    'T': '7', 'Y': '7',
     'B': '8',
+    'P': '9', 'g': '9'
 }
 
 NUMERO_PARA_LETRA = {
@@ -40,20 +41,24 @@ NUMERO_PARA_LETRA = {
     '6': 'G',
     '7': 'T',
     '8': 'B',
+    '9': 'P'
 }
 
 # Palavras e ruídos conhecidos que aparecem em molduras de placas brasileiras
 RUIDOS_CONHECIDOS = [
-    "BRASIL", "BRAS1L", "MERCOSUR", "MERCOSUL", 
-    "CLSIL", "PSL", "SIL", "BR"
+    "BRASIL", "BRAS1L", "8RAS1L", "8RA61L", "MERCOSUR", "MERCOSUL", 
+    "CLSIL", "PSL", "SIL", "CASIL", "WSE", "BR"
 ]
 
 
 def limpar_texto(texto: str) -> str:
-    """Remove caracteres não alfanuméricos e converte para maiúsculo."""
+    """Remove caracteres não alfanuméricos, substitui dígrafos comuns e converte para maiúsculo."""
     if not texto:
         return ""
-    return re.sub(r"[^A-Za-z0-9]", "", texto).upper()
+    t = texto.upper()
+    # Substituições de dígrafos que representam W na fonte Mercosul desgastada
+    t = t.replace("KB", "W").replace("VV", "W").replace("UU", "W")
+    return re.sub(r"[^A-Za-z0-9]", "", t)
 
 
 def classificar_padrao_placa(placa: str) -> Optional[str]:
