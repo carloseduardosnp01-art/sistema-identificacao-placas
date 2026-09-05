@@ -10,6 +10,19 @@ from typing import Tuple, Optional, Dict, Any, List
 from .utils import extrair_melhor_placa_de_texto, tentar_corrigir_placa, limpar_texto
 
 _reader_easyocr = None
+_reconhecedor_yolo = None
+
+
+def obter_reconhecedor_yolo():
+    """Inicializa e retorna o reconhecedor de caracteres por YOLO (Estágio 2)."""
+    global _reconhecedor_yolo
+    if _reconhecedor_yolo is None:
+        try:
+            from .caracteres import ReconhecedorCaracteresYOLO
+            _reconhecedor_yolo = ReconhecedorCaracteresYOLO()
+        except Exception:
+            _reconhecedor_yolo = None
+    return _reconhecedor_yolo
 
 
 def obter_leitor_easyocr():
@@ -206,6 +219,12 @@ def extrair_texto_placa(img_placa: np.ndarray) -> Dict[str, Any]:
             "img_processada": None
         }
 
+    # 1. Tenta reconhecimento direto por YOLO de Caracteres (Deep Learning Estágio 2)
+    yolo_char = obter_reconhecedor_yolo()
+    if yolo_char and yolo_char.disponivel:
+        return yolo_char.reconhecer(img_placa)
+
+    # 2. Modo de Compatibilidade / Fallback Multi-Pass OCR
     variacoes = obter_variacoes_placa(img_placa)
     if not variacoes:
         return {

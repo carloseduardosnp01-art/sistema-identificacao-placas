@@ -52,12 +52,20 @@ detector = carregar_detector()
 st.sidebar.title("🚗 Sistema de Placas")
 st.sidebar.markdown("---")
 
-# Status do Modelo YOLO
-modelo_customizado_existe = os.path.exists(MODEL_PATH)
-if modelo_customizado_existe:
-    st.sidebar.success("✅ Modelo Treinado Carregado (`models/best.pt`)")
+# Status dos Modelos YOLO (Pipeline de 2 Estágios)
+st.sidebar.markdown("#### 🧠 Modelos de Deep Learning")
+modelo_detector_existe = os.path.exists(MODEL_PATH)
+if modelo_detector_existe:
+    st.sidebar.success("✅ **YOLO 1 (Detector)**: `models/best.pt`")
 else:
-    st.sidebar.warning("⚠️ Usando modelo base (`yolov8n.pt`). Treine no Colab para precisão máxima.")
+    st.sidebar.warning("⚠️ **YOLO 1 (Detector)**: Usando base (`yolov8n.pt`)")
+
+caminho_yolo_char = os.path.join(BASE_DIR, "models", "detector_caracteres.pt")
+modelo_char_existe = os.path.exists(caminho_yolo_char)
+if modelo_char_existe:
+    st.sidebar.success("✅ **YOLO 2 (Caracteres)**: `detector_caracteres.pt`")
+else:
+    st.sidebar.info("ℹ️ **YOLO 2 (Caracteres)**: Modo Fallback OCR Ativo (Pronto para receber `detector_caracteres.pt`)")
 
 confianca_yolo = st.sidebar.slider(
     "Confiança Mínima do YOLO:",
@@ -65,14 +73,14 @@ confianca_yolo = st.sidebar.slider(
     max_value=0.90,
     value=0.25,
     step=0.05,
-    help="Define o limite de sensibilidade do YOLO para detectar placas."
+    help="Define o limite de sensibilidade do YOLO para detectar placas e caracteres."
 )
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("ℹ️ Sobre o Projeto")
 st.sidebar.info(
-    "Sistema de Visão Computacional para detecção de placas (YOLO), "
-    "leitura de caracteres (OCR) e validação automática com base de veículos roubados."
+    "Sistema de Visão Computacional baseado em YOLO para detecção de placas e "
+    "leitura de caracteres Mercosul/Antigos com validação em base de veículos roubados."
 )
 
 
@@ -295,20 +303,44 @@ with aba2:
             st.info("Nenhum veículo cadastrado no momento.")
 
 
-# --- ABA 3: INSTRUÇÕES DO GOOGLE COLAB ---
+# --- ABA 3: INSTRUÇÕES DE TREINAMENTO DOS MODELOS YOLO ---
 with aba3:
-    st.subheader("Como Treinar o Modelo YOLO com Open Images Dataset V7")
-    st.markdown("""
-    Para obter a máxima precisão na detecção de placas, você pode treinar o YOLO no **Google Colab** com GPU gratuita.
+    st.subheader("🎓 Treinamento dos Modelos de Deep Learning (YOLO)")
+    st.markdown("Aprenda a treinar os dois estágios do pipeline com GPU no Google Colab ou diretamente no seu computador.")
 
-    ### 📌 Passo a Passo:
-    1. Abra o arquivo de notebook que criamos em [`colab/treinamento_yolo_placas.ipynb`](file:///c:/Users/Admin/Desktop/PROGRAMACAO/sistema-identificacao-placas/colab/treinamento_yolo_placas.ipynb) no **Google Colab** ([colab.research.google.com](https://colab.research.google.com/)).
-    2. No Colab, ative a GPU em **Ambiente de Execução > Alterar tipo de ambiente de execução > GPU T4**.
-    3. Execute as células do notebook sequencialmente:
-       - O notebook baixa automaticamente as imagens anotadas da classe `Vehicle registration plate` do **Open Images Dataset V7**.
-       - Formata as anotações no padrão YOLO (`data.yaml`).
-       - Treina o modelo YOLOv8 / YOLO11 por 30-50 épocas.
-    4. Ao final do treino, faça o download do arquivo `best.pt` gerado na pasta `runs/detect/train/weights/best.pt`.
-    5. Coloque o arquivo baixado dentro da pasta `models/best.pt` deste projeto.
-    6. Recarregue esta página web e o sistema passará a usar automaticamente o seu modelo treinado!
-    """)
+    sub_tab1, sub_tab2, sub_tab3 = st.tabs([
+        "1️⃣ YOLO 1: Detector de Placas",
+        "2️⃣ YOLO 2: Leitor de Caracteres (Roboflow)",
+        "💻 Treinamento Local no PC"
+    ])
+
+    with sub_tab1:
+        st.markdown("""
+        ### 🎯 Estágio 1: Detector de Placas no Veículo
+        * **Objetivo**: Achar e recortar a placa na cena completa (em qualquer ângulo e iluminação).
+        * **Notebook**: [`colab/treinamento_yolo_placas.ipynb`](file:///c:/Users/Admin/Desktop/PROGRAMACAO/sistema-identificacao-placas/colab/treinamento_yolo_placas.ipynb)
+        * **Dataset**: Open Images Dataset V7 (`Vehicle registration plate`).
+        * **Arquivo Gerado**: `models/detector_placas.pt` (ou `models/best.pt`).
+        """)
+
+    with sub_tab2:
+        st.markdown("""
+        ### 🔤 Estágio 2: Leitor de Caracteres Mercosul & Antigos
+        * **Objetivo**: Detectar individualmente cada uma das 36 classes de letras e números (`0-9`, `A-Z`) na fonte oficial FE-Schrift em cores naturais.
+        * **Notebook**: [`colab/treinamento_yolo_caracteres.ipynb`](file:///c:/Users/Admin/Desktop/PROGRAMACAO/sistema-identificacao-placas/colab/treinamento_yolo_caracteres.ipynb)
+        * **Dataset**: Roboflow Universe (Placas Brasil / Mercosul Caracteres).
+        * **Arquivo Gerado**: Salve o modelo treinado como `models/detector_caracteres.pt`.
+        """)
+
+    with sub_tab3:
+        st.markdown("""
+        ### 🖥️ Treinando Diretamente no seu Computador
+        Você também pode rodar o treinamento localmente no terminal:
+        ```bash
+        # Treinar com dataset do Roboflow
+        python train_caracteres.py --roboflow_key SUA_CHAVE --roboflow_workspace placas-brasil --roboflow_project caracteres-mercosul --epochs 40
+
+        # Ou treinar com dataset local já baixado
+        python train_caracteres.py --data data/datasets_caracteres/data.yaml --epochs 40
+        ```
+        """)
