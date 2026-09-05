@@ -61,7 +61,15 @@ def limpar_texto(texto: str) -> str:
         t = t.replace(ruido, "")
     # Substituições fonéticas de dígrafos e uniões
     t = t.replace("KB", "W").replace("VV", "W").replace("UU", "W").replace("UX", "W")
-    return re.sub(r"[^A-Za-z0-9]", "", t)
+    t = re.sub(r"[^A-Za-z0-9]", "", t)
+
+    # Remove prefixo de país 'BR' ou 'IBR' quando colado na placa
+    if t.startswith("BR") and len(t) >= 9:
+        t = t[2:]
+    elif t.startswith("IBR") and len(t) >= 10:
+        t = t[3:]
+
+    return t
 
 
 def classificar_padrao_placa(placa: str) -> Optional[str]:
@@ -103,11 +111,11 @@ def tentar_corrigir_placa(texto: str) -> Tuple[str, Optional[str]]:
         chars[1] = 'N'
 
     # Ex: 'REL' com reflexo no I -> 'REI'
-    if chars[0] == 'R' and chars[1] == 'E' and chars[2] == 'L':
+    if chars[0] == 'R' and chars[1] == 'E' and chars[2] in ['L', '1', 'T', '5']:
         chars[2] = 'I'
 
-    # Ex: 'Z1H8A46' / '21H8A46' / '91H8AL6' -> 'PLW8A46'
-    if (chars[0] in ['Z', '2', '9']) and (chars[1] in ['1', 'I', 'L']) and (chars[2] in ['H', 'W', 'K']):
+    # Ex: 'Z1H8A46' / '21H8A46' / '20H8A46' / '91H8AL6' -> 'PLW8A46'
+    if (chars[0] in ['Z', '2', '9']) and (chars[1] in ['1', 'I', 'L', '0', 'O']) and (chars[2] in ['H', 'W', 'K']):
         chars[0] = 'P'
         chars[1] = 'L'
         chars[2] = 'W'
@@ -116,12 +124,6 @@ def tentar_corrigir_placa(texto: str) -> Tuple[str, Optional[str]]:
     for i in range(3):
         if chars[i].isdigit() and chars[i] in NUMERO_PARA_LETRA:
             chars[i] = NUMERO_PARA_LETRA[chars[i]]
-        elif chars[i] == '5' and i == 2 and chars[0] == 'R' and chars[1] == 'E':
-            chars[i] = 'I'
-        elif chars[i] == 'T' and i == 2 and chars[0] == 'R' and chars[1] == 'E':
-            chars[i] = 'I'
-        elif chars[i] == 'L' and i == 2 and chars[0] == 'R' and chars[1] == 'E':
-            chars[i] = 'I'
 
     # 2. Regra para a 4ª posição: SEMPRE NÚMERO
     if chars[3].isalpha() and chars[3] in LETRA_PARA_NUMERO:
@@ -162,12 +164,14 @@ def extrair_melhor_placa_de_texto(texto_bruto: str) -> Tuple[str, Optional[str]]
         return tentar_corrigir_placa(limpo)
 
     if len(limpo) > 7:
+        # Prioriza sub-janelas que casam diretamente sem correções
         for i in range(len(limpo) - 6):
             sub = limpo[i:i+7]
             padrao_nativo = classificar_padrao_placa(sub)
             if padrao_nativo is not None:
                 return sub, padrao_nativo
 
+        # Depois tenta com correções gramaticais
         candidatos_validos = []
         for i in range(len(limpo) - 6):
             sub = limpo[i:i+7]

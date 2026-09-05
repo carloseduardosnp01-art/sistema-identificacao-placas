@@ -247,6 +247,7 @@ def extrair_texto_placa(img_placa: np.ndarray) -> Dict[str, Any]:
         textos_proc = []
         confs = []
 
+        h_v, w_v = img_var.shape[:2]
         for bbox, txt, prob in resultados_ordenados:
             txt_l = limpar_texto(txt)
             if not txt_l or prob <= 0.05:
@@ -254,7 +255,7 @@ def extrair_texto_placa(img_placa: np.ndarray) -> Dict[str, Any]:
 
             pts = np.array(bbox, dtype=np.int32)
             bx1, by1 = max(0, int(np.min(pts[:, 0]))), max(0, int(np.min(pts[:, 1])))
-            bx2, by2 = min(w_hd, int(np.max(pts[:, 0]))), min(h_hd, int(np.max(pts[:, 1])))
+            bx2, by2 = min(w_v, int(np.max(pts[:, 0]))), min(h_v, int(np.max(pts[:, 1])))
 
             crop_base = img_var if len(img_var.shape) == 3 else img_hd
             txt_desambiguado = processar_bloco_ocr(txt, bx1, by1, bx2, by2, crop_base)
