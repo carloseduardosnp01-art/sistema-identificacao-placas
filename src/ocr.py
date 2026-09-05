@@ -139,7 +139,10 @@ def desambiguar_caractere_fe_schrift(char_pred: str, pos: int, crop_char: np.nda
 
         # 3. Desambiguação 4 vs 1 / L
         if pos in [3, 5, 6] and c in ['1', '4', 'L']:
-            if ratio_wh > 0.35:
+            terco_medio = char_th[int(h_c * 0.35):int(h_c * 0.75), :]
+            largura_terco = np.sum(np.any(terco_medio > 0, axis=0))
+            ratio_terco = largura_terco / float(max(1, w_c))
+            if ratio_terco > 0.50 or ratio_wh > 0.35:
                 return '4'
             else:
                 return '1'
