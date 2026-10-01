@@ -16,3 +16,4 @@ data/*.db
 # Caches
 .pytest_cache/
 .streamlit/
+.agents/

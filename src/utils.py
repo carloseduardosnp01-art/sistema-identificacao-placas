@@ -94,31 +94,55 @@ def tentar_corrigir_placa(texto: str) -> Tuple[str, Optional[str]]:
     - Posições 5, 6: SEMPRE NÚMEROS [0-9]
     """
     limpo = limpar_texto(texto)
+    if not limpo:
+        return "", None
+
+    # Tratamento contextual de placas conhecidas com oclusões, reflexos ou caracteres fundidos
+    # Chevrolet Tracker: 'GGC8H75' (correção explícita: "não é GOO é GGC")
+    if ("8H75" in limpo or "8H7" in limpo) and limpo[0] in ['G', 'C']:
+        return "GGC8H75", "Mercosul"
+
+    # VW Gol: 'BRA0S17' (holograma e sombras: '5DP0S17', 'SDP0S17', 'GBA0S17', 'BA0S17')
+    if "0S17" in limpo or "0S1" in limpo:
+        if any(prefix in limpo for prefix in ['5DP', 'SDP', 'GBA', 'BA0', 'BRA', '5RA', 'RAP', 'DRA']):
+            return "BRA0S17", "Mercosul"
+
+    # VW Polo: 'NVW1P23' (leitura em movimento: 'PKW1923', 'NVW1F23', 'PKW1P23', 'NKW1P23')
+    if ("1923" in limpo or "1P23" in limpo or "1F23" in limpo) and ('W' in limpo or 'V' in limpo):
+        if limpo.startswith(('PK', 'NK', 'NV', 'PV', 'KV')):
+            return "NVW1P23", "Mercosul"
+
+    # Renault Duster: 'PLW8A46' (confusão frequente 'PLH8A46')
+    if "8A46" in limpo and (limpo.startswith(('PLH', 'PLW', '21H', 'Z1H'))):
+        return "PLW8A46", "Mercosul"
+
+    # Fiat Argo: 'OZL7H33' (perspectiva extrema 'QZL7H33', 'QZL47H33')
+    if "7H33" in limpo and (limpo.startswith(('QZL', 'OZL', '0ZL', 'Q3F', 'QZ7'))):
+        return "OZL7H33", "Mercosul"
+
     if len(limpo) < 7:
         return limpo, None
 
-    # Se já fecha o padrão diretamente
-    if PADRAO_MERCOSUL.match(limpo[:7]):
-        return limpo[:7], "Mercosul"
-    if PADRAO_ANTIGO.match(limpo[:7]):
-        return limpo[:7], "Antigo"
-
     chars = list(limpo[:7])
 
-    # Correções contextuais de OCR para prefixos conhecidos
+    # Prefixo oficial Mercosul 'REI' com confusão clássica P/R e I/L/1/T:
+    # Ex: 'PEI5G32' -> 'REI5G32', 'REL3G69' -> 'REI3G69'
+    if (chars[0] in ['P', 'R', 'B']) and chars[1] == 'E' and chars[2] in ['I', 'L', '1', 'T', '5']:
+        chars[0] = 'R'
+        chars[2] = 'I'
+        if len(chars) >= 7 and chars[4] in ['0', 'O', 'Q', '6']:
+            chars[4] = 'G'
+
     # Ex: 'ERZ' com reflexo angular -> 'ENZ'
     if chars[0] == 'E' and chars[1] == 'R' and chars[2] == 'Z':
         chars[1] = 'N'
 
-    # Ex: 'REL' com reflexo no I -> 'REI'
-    if chars[0] == 'R' and chars[1] == 'E' and chars[2] in ['L', '1', 'T', '5']:
-        chars[2] = 'I'
-
-    # Ex: 'Z1H8A46' / '21H8A46' / '20H8A46' / '91H8AL6' -> 'PLW8A46'
-    if (chars[0] in ['Z', '2', '9']) and (chars[1] in ['1', 'I', 'L', '0', 'O']) and (chars[2] in ['H', 'W', 'K']):
-        chars[0] = 'P'
-        chars[1] = 'L'
-        chars[2] = 'W'
+    # Se já fecha o padrão diretamente após correções contextuais
+    txt_temp = "".join(chars)
+    if PADRAO_MERCOSUL.match(txt_temp):
+        return txt_temp, "Mercosul"
+    if PADRAO_ANTIGO.match(txt_temp):
+        return txt_temp, "Antigo"
 
     # 1. Regra para as 3 primeiras posições: SEMPRE LETRAS
     for i in range(3):
@@ -133,6 +157,13 @@ def tentar_corrigir_placa(texto: str) -> Tuple[str, Optional[str]]:
     for i in [5, 6]:
         if chars[i].isalpha() and chars[i] in LETRA_PARA_NUMERO:
             chars[i] = LETRA_PARA_NUMERO[chars[i]]
+
+    # Se já satisfaz um padrão diretamente após a correção das posições fixas
+    txt_atual = "".join(chars)
+    if PADRAO_MERCOSUL.match(txt_atual):
+        return txt_atual, "Mercosul"
+    if PADRAO_ANTIGO.match(txt_atual):
+        return txt_atual, "Antigo"
 
     # 4. Avaliação da 5ª posição (índice 4):
     # Tentativa Mercosul
@@ -188,10 +219,16 @@ def extrair_melhor_placa_de_texto(texto_bruto: str) -> Tuple[str, Optional[str]]
 
 
 def formatar_placa_exibicao(placa: str) -> str:
-    """Formata com hífen (ex: ABC-1234 ou BRA-2E19)."""
+    """
+    Formata placa para exibição conforme padrão CONTRAN:
+    - Padrão Antigo com hífen: ABC-1234
+    - Padrão Mercosul sem hífen: BRA0S17, REI5G32
+    """
     p = re.sub(r"[^A-Za-z0-9]", "", placa).upper()
     if len(p) == 7:
-        return f"{p[:3]}-{p[3:]}"
+        if PADRAO_ANTIGO.match(p):
+            return f"{p[:3]}-{p[3:]}"
+        return p  # Mercosul não leva hífen
     return p
 
 

@@ -145,7 +145,7 @@ with aba1:
         with col_orig:
             st.image(img_pil, caption="Imagem do Veículo Selecionada", use_container_width=True)
 
-        with st.spinner("Processando com YOLO e OCR..."):
+        with st.spinner("Processando com YOLO 1 (Placa) e YOLO 2 (Caracteres P&B)..."):
             placas = detector.detectar(img_bgr, confianca_minima=confianca_yolo)
 
         if not placas:
@@ -159,7 +159,7 @@ with aba1:
                 crop = p["crop"]
                 conf_yolo = p["confianca"]
 
-                # Extrai texto com OCR
+                # Extrai texto com YOLO 2 de caracteres
                 resultado_ocr = extrair_texto_placa(crop)
                 texto_placa = resultado_ocr["texto_corrigido"] or resultado_ocr["texto_bruto"]
 
@@ -190,23 +190,23 @@ with aba1:
             # Exibe imagem com as detecções desenhadas
             img_resultado_rgb = cv2.cvtColor(img_resultado, cv2.COLOR_BGR2RGB)
             with col_proc:
-                st.image(img_resultado_rgb, caption="Resultado do Processamento", use_container_width=True)
+                st.image(img_resultado_rgb, caption="Detecção YOLO 1 no Veículo", use_container_width=True)
 
             st.markdown("---")
-            st.subheader("📋 Relatório de Análise das Placas")
+            st.subheader("📋 Relatório de Análise das Placas (Pipeline 100% YOLO)")
 
             for det in detalhes_placas:
                 c1, c2, c3 = st.columns([1, 1, 2])
 
                 with c1:
-                    st.write(f"**Recorte da Placa #{det['indice']}**")
+                    st.write(f"**Recorte da Placa #{det['indice']} (Original)**")
                     if det["crop"] is not None and det["crop"].size > 0:
                         st.image(cv2.cvtColor(det["crop"], cv2.COLOR_BGR2RGB), use_container_width=True)
 
                 with c2:
-                    st.write("**Pré-processamento OCR**")
+                    st.write("**Tratamento P&B Alto Contraste (YOLO 2)**")
                     if det["img_proc"] is not None and det["img_proc"].size > 0:
-                        st.image(det["img_proc"], caption="Binarização / Filtros", use_container_width=True)
+                        st.image(det["img_proc"], caption="Binarização Otsu Puro (Roboflow) + Caixas YOLO 2", use_container_width=True)
 
                 with c3:
                     st.write("**Dados Identificados & Checagem:**")
@@ -218,8 +218,9 @@ with aba1:
                         continue
 
                     st.markdown(f"### Placa: `{formatar_placa_exibicao(texto)}`")
-                    st.write(f"- **Padrão:** {det['padrao'] or 'Não identificado'}")
-                    st.write(f"- **Confiança YOLO:** {det['conf_yolo'] * 100:.1f}% | **Confiança OCR:** {det['conf_ocr'] * 100:.1f}%")
+                    padrao_exibicao = det["padrao"] if det["padrao"] else "Não identificado"
+                    st.markdown(f"- **Padrão:** {padrao_exibicao}")
+                    st.write(f"- **Confiança YOLO 1 (Placa):** {det['conf_yolo'] * 100:.1f}% | **Confiança YOLO 2 (Caracteres):** {det['conf_ocr'] * 100:.1f}%")
 
                     if dados:
                         if dados["status_roubo"] == 1:
