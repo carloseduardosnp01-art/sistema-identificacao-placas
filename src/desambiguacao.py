@@ -285,12 +285,16 @@ def desambiguar_caractere_especifico(crop_char: Optional[np.ndarray], char_atual
         if char_atual in ['O', 'D', 'Q', 'C', '0']:
             return '0'
 
-        if char_atual in ['I', 'L', 'T', 'J', '1', '7']:
-            if th is not None and char_atual in ['1', '7', 'T']:
-                barra_topo = float(np.mean(th[3:14, 4:36] == 255)) > 0.50
-                if barra_topo:
-                    return '7'
-            return '7' if char_atual == '7' else '1'
+        if char_atual in ['I', 'L', 'J', '1']:
+            return '1'
+
+        if char_atual in ['7', 'T']:
+            if th is not None:
+                # O '7' tem barra horizontal no topo. Se a barra superior for oca/vazia, é na verdade '1'
+                topo_dir = float(np.mean(th[3:14, 20:34] == 255))
+                if topo_dir < 0.18:
+                    return '1'
+            return '7'
 
         if char_atual in ['S', '5']:
             return '5'
@@ -316,11 +320,19 @@ def desambiguar_caractere_especifico(crop_char: Optional[np.ndarray], char_atual
         elif char_atual == 'H':
             return 'H'
 
-        # C vs G
-        if char_atual in ['C', 'G']:
+        # C vs G: preserva C com segurança, desambigua com limiar mais conservador
+        if char_atual == 'C':
             if th is not None:
-                return desambiguar_C_G(th)
-            return char_atual
+                lado_dir_inf = float(np.mean(th[28:46, 26:36] == 255))
+                if lado_dir_inf > 0.45:
+                    return 'G'
+            return 'C'
+        elif char_atual == 'G':
+            if th is not None:
+                lado_dir_inf = float(np.mean(th[28:46, 26:36] == 255))
+                if lado_dir_inf < 0.20:
+                    return 'C'
+            return 'G'
 
         # S e Q (preserva S se já for S, desambigua apenas se for Q ou dígito)
         if char_atual == 'S':

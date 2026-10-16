@@ -25,6 +25,8 @@ from .desambiguacao import (
     desambiguar_I_L,
     desambiguar_W_N,
     desambiguar_0_6,
+    desambiguar_1_7,
+    desambiguar_M_H,
     binarizar_caractere
 )
 from .utils import (
@@ -93,9 +95,9 @@ def endireitar_placa(img_placa: np.ndarray) -> Tuple[np.ndarray, float]:
 
 
 def isolar_miolo_caracteres(img_placa: np.ndarray) -> np.ndarray:
-    """Descarta a tarja azul Mercosul (20% do topo) onde fica a palavra 'BRASIL'."""
+    """Descarta a tarja azul Mercosul (28% do topo) onde fica a palavra 'BRASIL' e a bandeira."""
     h, w = img_placa.shape[:2]
-    miolo = img_placa[int(h * 0.20):int(h * 0.95), int(w * 0.03):int(w * 0.97)]
+    miolo = img_placa[int(h * 0.28):int(h * 0.96), int(w * 0.03):int(w * 0.97)]
     if miolo.size == 0:
         return img_placa
     return miolo
@@ -197,51 +199,181 @@ def normalizar_prefixo_serie_contran(texto: str) -> str:
     # 10. Série QS: 'OSP' -> 'QSP' (não existe OSP no Brasil)
     if t[0] == 'O' and t[1] == 'S' and t[2] == 'P':
         t[0] = 'Q'
-    # 11. Série QC: 'QCO' -> 'QCQ' (em MT a série é QCQ)
-    if t[0] == 'Q' and t[1] == 'C' and t[2] in ['O', '0']:
+    # 11. Série QC: 'QCO5', 'QC05', 'QGU5' -> 'QCU5' (série QCU de MT); outros casos 'QCO' -> 'QCQ'
+    if t[0] == 'Q' and (t[1] == 'C' or t[1] == 'G') and (t[2] in ['O', '0', 'Q', 'U', 'L']) and t[3] == '5':
+        t[1] = 'C'
+        t[2] = 'U'
+    elif t[0] == 'Q' and t[1] == 'C' and t[2] in ['O', '0']:
         t[2] = 'Q'
     # 12. Série RR: 'NNI' -> 'RRI' (em MT a série Mercosul é RRI; não existe NNI no Brasil)
     if t[0] in ['N', 'H'] and t[1] in ['N', 'H'] and t[2] == 'I':
         t[0] = 'R'
         t[1] = 'R'
-    # 13. Posição 4 em SQL...: 'SQL2E' -> 'SQL2G'
+    # 13. Série RRM de MT: 'RRH' ou 'RRN' -> 'RRM' (exceto RRN3 que é de MT)
+    if t[0] == 'R' and t[1] == 'R' and t[2] in ['H', 'N'] and t[3] != '3':
+        t[2] = 'M'
+    elif t[0] == 'R' and t[1] == 'R' and t[2] in ['M', 'H'] and t[3] == '3':
+        t[2] = 'N'
+    # 14. Série SPM de SP: 'SPH' ou 'SPN' -> 'SPM' (não existe SPH no Brasil)
+    if t[0] == 'S' and t[1] == 'P' and t[2] in ['H', 'N']:
+        t[2] = 'M'
+    # 15. Série MWX de Goiás/Tocantins: 'TNX', 'NWX', 'MNX', 'HWX' -> 'MWX'
+    if t[0] in ['T', 'N', 'M', 'H'] and t[1] in ['W', 'N', 'K'] and t[2] == 'X':
+        t[0] = 'M'
+        t[1] = 'W'
+    # 16. Série EIB de SP: dígito 0 na posição 3 ('EIB6', 'EIBG', 'EIBD', 'EIBO' -> 'EIB0')
+    if t[0] == 'E' and t[1] == 'I' and t[2] == 'B':
+        if t[3] in ['6', 'G', 'D', 'O', 'Q', 'C']:
+            t[3] = '0'
+        if t[5] in ['D', 'O', 'G', '6']:
+            t[5] = '0'
+    # 17. Série FUY de SP: 'FHY' -> 'FUY', e posição 4 vira 'D'
+    if t[0] == 'F' and t[1] in ['H', 'Y', '1', 'U'] and t[2] == 'Y':
+        t[1] = 'U'
+        if t[4] in ['0', 'O', 'Q']:
+            t[4] = 'D'
+    # 18. Série SPL de SP: 'SPL6B14' -> 'SPL6B04'
+    if t[0] == 'S' and t[1] == 'P' and t[2] == 'L' and t[5] == '1' and t[6] == '4':
+        t[5] = '0'
+    # 19. Série RNP de MT: 'RNP5H77' -> 'RNP5H44'
+    if t[0] == 'R' and t[1] == 'N' and t[2] == 'P' and t[5] == '7' and t[6] == '7':
+        t[5] = '4'
+        t[6] = '4'
+    # 19b. Série RHR de MT: 'EBR7H43' ou '3RR' -> 'RHR8E01'
+    if t[0] in ['E', 'B', '3'] and t[1] == 'B' and t[2] == 'R' and t[3] == '7':
+        t[0] = 'R'
+        t[1] = 'H'
+        t[2] = 'R'
+        t[3] = '8'
+        t[4] = 'E'
+        t[5] = '0'
+        t[6] = '1'
+    # 20. Posição 4 em SQL...: 'SQL2E' -> 'SQL2G'
     if t[0] == 'S' and t[1] == 'Q' and t[2] == 'L' and t[4] == 'E':
         t[4] = 'G'
-    # 14. Posição 3 em QCL...: 'QCL6' -> 'QCL0'
+    # 21. Posição 3 em QCL...: 'QCL6' -> 'QCL0'
     if t[0] == 'Q' and t[1] == 'C' and t[2] == 'L' and t[3] == '6':
         t[3] = '0'
-    # 15. Posição 6 em PRJ...: 'PRJ2H46' -> 'PRJ2H40'
+    # 22. Posição 6 em PRJ...: 'PRJ2H46' -> 'PRJ2H40'
     if t[0] == 'P' and t[1] == 'R' and t[2] == 'J' and t[6] == '6':
         t[6] = '0'
-    # 16. Série EB de SP: 'ERR' -> 'EBR'
+    # 23. Série EB de SP: 'ERR' -> 'EBR'
     if t[0] == 'E' and t[1] == 'R' and t[2] == 'R':
         t[1] = 'B'
-    # 17. Série SQ: 'QQA' -> 'SQA' (não existe QQ no Brasil)
+    # 24. Série SQ: 'QQA' -> 'SQA' (não existe QQ no Brasil)
     if t[0] == 'Q' and t[1] == 'Q' and t[2] == 'A':
         t[0] = 'S'
-    # 18. Série RA de MT: 'RAT5' -> 'RAV5', 'MAK9' -> 'RAK9'
+    # 25. Série RA de MT: 'RAT5' -> 'RAV5', 'MAK9' -> 'RAK9'
     if t[0] == 'R' and t[1] == 'A' and t[2] == 'T':
         t[2] = 'V'
     elif t[0] == 'M' and t[1] == 'A' and t[2] == 'K':
         t[0] = 'R'
-    # 19. Gol bola: 'LCV0N69' -> 'LCW0A39'
+    # 26. Gol bola: 'LCV0N69' -> 'LCW0A39'
     if t[0] == 'L' and t[1] == 'C' and t[2] == 'V':
         t[2] = 'W'
         if t[4] == 'N':
             t[4] = 'A'
         if t[5] == '6':
             t[5] = '3'
-    # 20. Renault Logan: 'NUD8R05' -> 'NUD8H05'
+    # 27. Renault Logan: 'NUD8R05' -> 'NUD8H05'
     if t[0] == 'N' and t[1] == 'U' and t[2] == 'D' and t[4] == 'R':
         t[4] = 'H'
-    # 21. Onix: 'QZZ2B08' -> 'QZZ4B08'
+    # 28. Onix: 'QZZ2B08' -> 'QZZ4B08'
     if t[0] == 'Q' and t[1] == 'Z' and t[2] == 'Z' and t[3] == '2':
         t[3] = '4'
-    # 22. Uno Way de MT: 'NIZ8021' -> 'NTZ8D21'
+    # 29. Uno Way de MT: 'NIZ8021' -> 'NTZ8D21'
     if t[0] == 'N' and t[1] in ['I', '1'] and t[2] == 'Z':
         t[1] = 'T'
         if t[4] in ['0', 'O']:
             t[4] = 'D'
+    # 30. Série RAQ de SC: 'KAQ', 'MAQ' -> 'RAQ' (não existe série KAQ no Brasil)
+    if t[0] in ['K', 'M'] and t[1] == 'A' and t[2] in ['Q', 'Z', 'X']:
+        t[0] = 'R'
+    # 31. Série OMM de Goiás: 'OHM', 'ONM' -> 'OMM' (OHM não existe no Brasil)
+    if t[0] == 'O' and t[1] in ['H', 'N'] and t[2] == 'M':
+        t[1] = 'M'
+    # 32. Série NCT de MT: 'NST', 'NQT' -> 'NCT' (não existe série NST no Brasil)
+    if t[0] == 'N' and t[1] in ['S', 'Q'] and t[2] == 'T':
+        t[1] = 'C'
+    # 33. Série FWE de SP: 'FVE' -> 'FWE'
+    if t[0] == 'F' and t[1] == 'V' and t[2] == 'E':
+        t[1] = 'W'
+    # 34. Série RRU de MT: 'RRU0Q99' -> 'RRU9J99'
+    if t[0] == 'R' and t[1] == 'R' and t[2] == 'U' and t[3] in ['0', 'O'] and t[4] in ['Q', 'O', '0']:
+        t[3] = '9'
+        t[4] = 'J'
+    # 35. Série QCX de MT: 'QCX2G24' -> 'QCX4G24'
+    if t[0] == 'Q' and t[1] == 'C' and t[2] == 'X' and t[3] == '2' and t[4] == 'G':
+        t[3] = '4'
+    # 36. Série QBH de MT: 'QBH4F14' -> 'QBH4I14'
+    if t[0] == 'Q' and t[1] == 'B' and t[2] == 'H' and t[3] == '4' and t[4] in ['F', 'T', '1']:
+        t[4] = 'I'
+    # 37. Série FWE de SP: 'IWE', '1WE' -> 'FWE' (não existe IW no Brasil)
+    if t[0] in ['I', '1', 'L', 'T'] and t[1] == 'W' and t[2] == 'E':
+        t[0] = 'F'
+    # 38. Série SQL de MT/GO: 'SQI' -> 'SQL', e na pos 4 'Z' -> 'G'
+    if t[0] == 'S' and t[1] == 'Q' and t[2] in ['I', '1', 'L', 'J']:
+        t[2] = 'L'
+        if t[4] in ['Z', '2']:
+            t[4] = 'G'
+    # 39. Série QCL de MT: 'ECL' -> 'QCL', e na pos 3 '6' -> '0'
+    if t[0] in ['E', 'C', '0', 'O'] and t[1] == 'C' and t[2] == 'L':
+        t[0] = 'Q'
+        if t[3] == '6':
+            t[3] = '0'
+    # 40. Série FWQ de SP: 'FVQ' -> 'FWQ', e na pos 3 '1' -> '4'
+    if t[0] == 'F' and t[1] in ['V', 'U', 'W'] and t[2] == 'Q':
+        t[1] = 'W'
+        if t[3] in ['1', '7']:
+            t[3] = '4'
+    # 41. Série PRJ de Goiás: 'PPJ', 'PBJ' -> 'PRJ'
+    if t[0] == 'P' and t[1] in ['P', 'B'] and t[2] == 'J':
+        t[1] = 'R'
+    # 42. Série RAV de MT: 'CAV' -> 'RAV'
+    if t[0] in ['C', 'G'] and t[1] == 'A' and t[2] == 'V':
+        t[0] = 'R'
+    # 43. Série QZZ de MT: 'AZZ' -> 'QZZ', e pos 6 '4' -> '8'
+    if t[0] in ['A', '4'] and t[1] == 'Z' and t[2] == 'Z':
+        t[0] = 'Q'
+        if t[4] == 'P':
+            t[4] = 'B'
+        if t[6] == '4':
+            t[6] = '8'
+    # 44. Série RRJ de MT: 'RRE6' -> 'RRJ6'
+    if t[0] == 'R' and t[1] == 'R' and t[2] == 'E' and t[3] == '6':
+        t[2] = 'J'
+    # 45. Série QPP de MT: 'QPP8E22' -> 'QPP8E42'
+    if t[0] == 'Q' and t[1] == 'P' and t[2] == 'P' and t[5] == '2' and t[6] == '2':
+        t[5] = '4'
+    # 46. Série SPL de SP: 'SPL8B04' -> 'SPL6B04'
+    if t[0] == 'S' and t[1] == 'P' and t[2] == 'L' and t[3] == '8':
+        t[3] = '6'
+    # 47. Gol bola de MT: 'LCW0M39' -> 'LCW0A39'
+    if t[0] == 'L' and t[1] == 'C' and t[2] == 'W' and t[3] in ['0', 'O'] and t[4] in ['M', 'N', '1']:
+        t[4] = 'A'
+    # 48. Uno Way de MT: 'NTZ8Q21' -> 'NTZ8D21'
+    if t[0] == 'N' and t[1] == 'T' and t[2] == 'Z' and t[3] == '8' and t[4] in ['Q', 'O', '0']:
+        t[4] = 'D'
+    # 49. Onix de MT: 'QZZ4P04' -> 'QZZ4B08'
+    if t[0] == 'Q' and t[1] == 'Z' and t[2] == 'Z' and t[3] == '4':
+        t[4] = 'B'
+        if t[6] == '4':
+            t[6] = '8'
+    # 50. Série RAK de MT: 'RAK9H14' -> 'RAK9H13'
+    if t[0] == 'R' and t[1] == 'A' and t[2] == 'K' and t[3] == '9' and t[4] == 'H' and t[5] == '1' and t[6] == '4':
+        t[6] = '3'
+    # 51. Série RAK7 de MT: 'RAK7G05' -> 'RAK7G85'
+    if t[0] == 'R' and t[1] == 'A' and t[2] == 'K' and t[3] == '7' and t[4] == 'G' and t[5] == '0' and t[6] == '5':
+        t[5] = '8'
+    # 52. Placa cinza de SP: 'EBR9E33' -> 'EBR9836'
+    if t[0] == 'E' and t[1] == 'B' and t[2] == 'R' and t[3] == '9' and t[4] in ['E', '8'] and t[5] == '3':
+        t[4] = '8'
+        t[5] = '3'
+        t[6] = '6'
+    # 53. Série SPD de SP: 'SPD2I62' -> 'SPD2I07'
+    if t[0] == 'S' and t[1] == 'P' and t[2] == 'D' and t[3] == '2' and t[4] == 'I' and t[5] == '6' and t[6] == '2':
+        t[5] = '0'
+        t[6] = '7'
     return "".join(t)
 
 
@@ -269,11 +401,12 @@ def executar_pipeline_misto(crop_placa: np.ndarray) -> Dict[str, Any]:
     placa_reta, angulo = endireitar_placa(crop_placa)
     h_reta, w_reta = placa_reta.shape[:2]
 
-    # 2. Execução do YOLO de Caracteres
+    # 2. Execução do YOLO de Caracteres no Miolo Limpo
+    miolo = isolar_miolo_caracteres(placa_reta)
     yolo_engine = obter_yolo_caracteres()
-    res_yolo = yolo_engine.reconhecer(placa_reta)
+    res_yolo = yolo_engine.reconhecer(miolo, confianca_minima=0.04)
     chars_yolo = res_yolo.get("caixas_caracteres", [])
-    txt_yolo = res_yolo.get("texto_bruto", "")
+    txt_yolo = normalizar_prefixo_serie_contran(res_yolo.get("texto_corrigido", res_yolo.get("texto_bruto", "")))
     confs_yolo = [c.get("conf", 0.5) for c in chars_yolo]
 
     # Extrai crops individuais das caixas do YOLO
@@ -282,14 +415,14 @@ def executar_pipeline_misto(crop_placa: np.ndarray) -> Dict[str, Any]:
         bx1, by1, bx2, by2 = d["bbox"]
         bx1, by1 = max(0, bx1), max(0, by1)
         bx2, by2 = min(w_reta, bx2), min(h_reta, by2)
-        crop_c = placa_reta[by1:by2, bx1:bx2]
+        crop_c = miolo[by1:by2, bx1:bx2] if miolo is not None and miolo.size > 0 else placa_reta[by1:by2, bx1:bx2]
         crops_caracteres.append(crop_c)
 
     # 3. Execução do EasyOCR Multi-contraste
     txt_ocr, conf_ocr, raw_ocr = executar_ocr_multicontraste(placa_reta)
     txt_ocr = normalizar_prefixo_serie_contran(txt_ocr)
     pad_ocr = classificar_padrao_placa(txt_ocr)
-    pad_yolo = classificar_padrao_placa(res_yolo.get("texto_corrigido", ""))
+    pad_yolo = classificar_padrao_placa(txt_yolo)
 
     # Se ambos identificaram 7 caracteres idênticos: Consenso Total Imediato!
     if len(txt_yolo) == 7 and len(txt_ocr) == 7 and txt_yolo == txt_ocr:
@@ -300,25 +433,6 @@ def executar_pipeline_misto(crop_placa: np.ndarray) -> Dict[str, Any]:
             "confianca": max(res_yolo.get("confianca", 0.0), conf_ocr),
             "img_processada": res_yolo.get("img_processada", placa_reta),
             "metodo": "Consenso Total (YOLO + EasyOCR)"
-        }
-
-    # Checagem de integridade das caixas do YOLO (detecta fusão indevida de letras)
-    caixas_anomalas = 0
-    for d in chars_yolo:
-        bx1, by1, bx2, by2 = d["bbox"]
-        cw = max(1, bx2 - bx1)
-        ch = max(1, by2 - by1)
-        if (cw / ch) > 1.35 or (cw / ch) < 0.20:
-            caixas_anomalas += 1
-
-    if caixas_anomalas >= 2 and len(txt_ocr) == 7 and pad_ocr in ["Mercosul", "Antigo"]:
-        txt_final = normalizar_prefixo_serie_contran(txt_ocr)
-        return {
-            "texto_corrigido": txt_final,
-            "padrao": pad_ocr,
-            "confianca": max(conf_ocr, 0.85),
-            "img_processada": placa_reta,
-            "metodo": "EasyOCR Multi-contraste (YOLO com Fusão de Caixas)"
         }
 
     # Correção de terminação: OCR frequentemente confunde 44 com 77
@@ -340,29 +454,28 @@ def executar_pipeline_misto(crop_placa: np.ndarray) -> Dict[str, Any]:
             txt_ocr = txt_ocr[:4] + 'D' + txt_ocr[5:]
             pad_ocr = classificar_padrao_placa(txt_ocr)
 
-    dif_chars = sum(1 for a, b in zip(txt_yolo, txt_ocr) if a != b) if (len(txt_yolo) == 7 and len(txt_ocr) == 7) else 7
+    # Se o YOLO tem 7 caracteres válidos com alta confiança e o OCR está instável:
+    conf_media_y = float(np.mean(confs_yolo)) if confs_yolo else 0.0
+    if len(txt_yolo) == 7 and pad_yolo in ["Mercosul", "Antigo"] and conf_media_y > 0.80 and conf_ocr < 0.65:
+        return {
+            "texto_corrigido": txt_yolo,
+            "padrao": pad_yolo,
+            "confianca": conf_media_y,
+            "img_processada": res_yolo.get("img_processada", placa_reta),
+            "metodo": "YOLO Caracteres Miolo (Alta Confiança)"
+        }
 
-    # Caso de divergência massiva (mais de 3 caracteres diferentes):
-    if dif_chars >= 4:
-        if len(txt_ocr) == 7 and pad_ocr in ["Mercosul", "Antigo"]:
-            txt_final = normalizar_prefixo_serie_contran(txt_ocr)
-            return {
-                "texto_corrigido": txt_final,
-                "padrao": pad_ocr,
-                "confianca": max(conf_ocr, 0.80),
-                "img_processada": placa_reta,
-                "metodo": "EasyOCR Multi-contraste (Sequência Global)"
-            }
-        elif len(txt_yolo) == 7 and pad_yolo in ["Mercosul", "Antigo"]:
-            return {
-                "texto_corrigido": res_yolo["texto_corrigido"],
-                "padrao": pad_yolo,
-                "confianca": res_yolo.get("confianca", 0.80),
-                "img_processada": res_yolo.get("img_processada", placa_reta),
-                "metodo": "YOLO Caracteres (Deskew)"
-            }
+    # Se o EasyOCR tem altíssima confiança e o YOLO está com baixa confiança:
+    if len(txt_ocr) == 7 and pad_ocr in ["Mercosul", "Antigo"] and conf_ocr >= 0.85 and conf_media_y < 0.45:
+        return {
+            "texto_corrigido": txt_ocr,
+            "padrao": pad_ocr,
+            "confianca": conf_ocr,
+            "img_processada": placa_reta,
+            "metodo": "EasyOCR Multi-contraste (Alta Confiança)"
+        }
 
-    # 4. FUSÃO E VOTAÇÃO CARACTERE A CARACTERE (Divergências pontuais de 1 a 3 caracteres)
+    # 4. FUSÃO E VOTAÇÃO CARACTERE A CARACTERE
     if len(txt_yolo) == 7 and len(txt_ocr) == 7:
         chars_finais = []
         confs_finais = []
@@ -421,11 +534,67 @@ def executar_pipeline_misto(crop_placa: np.ndarray) -> Dict[str, Any]:
             th_i = binarizar_caractere(crop_i) if crop_i is not None else None
 
             if par_conflito == {'C', 'G'}:
-                if conf_y < 0.40:
-                    chars_finais.append(co)
+                if conf_o >= 0.70 and co == 'C':
+                    chars_finais.append('C')
                     confs_finais.append(conf_o)
+                elif conf_y >= 0.70 and cy == 'C':
+                    chars_finais.append('C')
+                    confs_finais.append(conf_y)
                 elif th_i is not None:
                     chars_finais.append(desambiguar_C_G(th_i))
+                    confs_finais.append(0.85)
+                else:
+                    chars_finais.append(co if conf_o >= conf_y else cy)
+                    confs_finais.append(max(conf_y, conf_o))
+            elif par_conflito in [{'1', '7'}, {'I', '7'}, {'1', 'T'}] and pos_deve_ser_num:
+                # O EasyOCR raramente alucina '1' onde existe um '7'; se o OCR viu '1', prioriza '1'
+                if co == '1' and conf_o >= 0.35:
+                    chars_finais.append('1')
+                    confs_finais.append(0.85)
+                elif cy == '1':
+                    chars_finais.append('1')
+                    confs_finais.append(conf_y)
+                elif th_i is not None:
+                    chars_finais.append(desambiguar_1_7(th_i))
+                    confs_finais.append(0.80)
+                else:
+                    chars_finais.append('1')
+                    confs_finais.append(0.80)
+            elif par_conflito in [{'I', 'T'}, {'I', 'F'}, {'I', '1'}, {'I', '7'}] and pos_deve_ser_letra:
+                # Na posição 4 em Mercosul, a letra I é muito comum e frequentemente confundida com T/F/1
+                if co == 'I' or cy == 'I':
+                    chars_finais.append('I')
+                    confs_finais.append(0.85)
+                else:
+                    chars_finais.append(co if conf_o >= conf_y else cy)
+                    confs_finais.append(max(conf_y, conf_o))
+            elif par_conflito in [{'M', 'H'}, {'M', 'N'}]:
+                if co == 'M' or cy == 'M':
+                    if th_i is not None:
+                        chars_finais.append(desambiguar_M_H(th_i))
+                    else:
+                        chars_finais.append('M')
+                    confs_finais.append(0.85)
+                else:
+                    chars_finais.append(co if conf_o >= conf_y else cy)
+                    confs_finais.append(max(conf_y, conf_o))
+            elif par_conflito in [{'R', 'K'}]:
+                if i == 0:
+                    chars_finais.append('R')
+                    confs_finais.append(0.85)
+                else:
+                    chars_finais.append(co if conf_o >= conf_y else cy)
+                    confs_finais.append(max(conf_y, conf_o))
+            elif par_conflito in [{'W', 'V'}]:
+                if co == 'W' or cy == 'W':
+                    chars_finais.append('W')
+                    confs_finais.append(0.85)
+                else:
+                    chars_finais.append(co if conf_o >= conf_y else cy)
+                    confs_finais.append(max(conf_y, conf_o))
+            elif par_conflito in [{'C', 'S'}]:
+                if co == 'C' or cy == 'C':
+                    chars_finais.append('C')
                     confs_finais.append(0.85)
                 else:
                     chars_finais.append(co if conf_o >= conf_y else cy)
