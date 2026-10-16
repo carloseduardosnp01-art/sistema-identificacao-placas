@@ -8,7 +8,9 @@ opencv-python>=4.8.0
 Pillow>=9.5.0
 numpy>=1.24.0
 
-# Reconhecimento de Caracteres (OCR e Pipeline Híbrido)
+# Reconhecimento de Caracteres (OCR e Motores Neurais)
+paddlepaddle>=3.0.0
+paddleocr>=3.0.0
 easyocr>=1.7.0
 
 # Servidor Web Leve (FastAPI + Uvicorn)

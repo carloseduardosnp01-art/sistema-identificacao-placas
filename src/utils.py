@@ -64,8 +64,12 @@ def limpar_texto(texto: str) -> str:
     t = t.replace("KB", "W").replace("VV", "W").replace("UU", "W").replace("UX", "W")
     t = re.sub(r"[^A-Za-z0-9]", "", t)
 
-    # Remove prefixo de país 'BR', 'IBR', 'U2BR', etc., quando colado na frente da placa
-    t = re.sub(r'^[A-Z0-9]{0,3}BR', '', t)
+    # Remove prefixo de país 'BR' solto ou colado APENAS se a sobra mantiver pelo menos 7 caracteres
+    # e não consumir a própria placa (ex: EBR9836)
+    if len(t) > 7:
+        m_br = re.match(r'^(?:[A-Z0-9]{0,2}BR)(.+)$', t)
+        if m_br and len(m_br.group(1)) >= 7:
+            t = m_br.group(1)
 
     return t
 
