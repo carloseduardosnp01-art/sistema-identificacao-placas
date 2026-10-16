@@ -72,12 +72,17 @@ Os relatórios detalhados e gráficos gerados estão disponíveis na pasta [`rel
 
 ```
 sistema-identificacao-placas/
+├── apresentacao/                        # Apresentação executiva completa do projeto
+│   ├── apresentacao_projeto_alpr.pptx   # Slides em PowerPoint (Widescreen 16:9 editável)
+│   └── apresentacao_projeto_alpr.html   # Slides interativos Web (Tailwind CSS)
 ├── colab/                               # Notebooks de treinamento (Google Colab)
 │   ├── treinamento_yolo_placas.ipynb            # Detector de placas (Open Images V7)
 │   ├── treinamento_yolo_caracteres.ipynb        # Detector de caracteres
 │   ├── treinamento_yolo_caracteres_ufpr.ipynb   # Caracteres com dataset UFPR
 │   └── treinamento_yolo_ufpr_alpr.ipynb         # Pipeline UFPR-ALPR
 ├── data/
+│   ├── resultados treinamento modelo de identificação de placa/           # Gráficos YOLO 1
+│   ├── resultados treinamento modelo de identificacao de caracteres yolo 2/ # Gráficos YOLO 2
 │   ├── fotos_drive/                     # Conjunto de 71 imagens reais para validação
 │   └── veiculos.db                      # Banco SQLite de veículos e ocorrências
 ├── models/
@@ -85,10 +90,17 @@ sistema-identificacao-placas/
 │   ├── detector_placas.pt               # Pesos do detector de placas
 │   └── detector_caracteres.pt           # Pesos do detector de caracteres
 ├── relatorios_benchmark/                # Planilhas (.xlsx, .csv) e gráficos de acurácia
+│   ├── painel_executivo_evolucao_completo.png
+│   ├── grafico_1_comparativo_yolo_ocr_hibrido.png
+│   ├── grafico_2_evolucao_etapas.png
+│   ├── grafico_3_ganho_por_metodo.png
+│   ├── grafico_4_distribuicao_qualidade_leitura.png
 │   ├── benchmark_placas_completo.xlsx
-│   ├── benchmark_placas_completo.csv
-│   └── benchmark_grafico_precisao.png
+│   └── benchmark_placas_completo.csv
 ├── scripts/
+│   ├── gerar_apresentacao.py            # Gerador dos slides PowerPoint e HTML
+│   ├── gerar_graficos_yolo2.py          # Gerador dos gráficos de treino do YOLO 2
+│   ├── gerar_graficos_evolucao.py       # Gerador dos gráficos de evolução e comparativos
 │   └── gerar_benchmark_completo.py      # Script de teste em lote e geração de gráficos
 ├── src/
 │   ├── server.py                        # Servidor Web assíncrono FastAPI

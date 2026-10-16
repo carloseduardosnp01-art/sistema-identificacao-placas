@@ -36,3 +36,5 @@ data/*.png
 
 # Mantém os gráficos e relatórios solicitados
 !relatorios_benchmark/*.png
+!data/resultados treinamento*/**
+!data/resultados treinamento*/*
