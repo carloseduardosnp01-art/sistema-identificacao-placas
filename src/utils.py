@@ -64,8 +64,9 @@ def limpar_texto(texto: str) -> str:
     t = t.replace("KB", "W").replace("VV", "W").replace("UU", "W").replace("UX", "W")
     t = re.sub(r"[^A-Za-z0-9]", "", t)
 
-    # Remove prefixo de país 'BR', 'IBR', 'U2BR', etc., quando colado na frente da placa
-    t = re.sub(r'^[A-Z0-9]{0,3}BR', '', t)
+    # Se tem mais de 7 caracteres, remove prefixo de país 'BR', 'IBR', 'U2BR', etc., quando colado na frente da placa
+    if len(t) > 7 and not (PADRAO_MERCOSUL.match(t[:7]) or PADRAO_ANTIGO.match(t[:7])):
+        t = re.sub(r'^[A-Z0-9]{0,3}BR', '', t)
 
     return t
 

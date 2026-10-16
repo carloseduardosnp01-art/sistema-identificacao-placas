@@ -10,6 +10,8 @@ numpy>=1.24.0
 
 # Reconhecimento de Caracteres (OCR e Pipeline Híbrido)
 easyocr>=1.7.0
+fast-plate-ocr>=1.1.0
+onnxruntime>=1.18.0
 
 # Servidor Web Leve (FastAPI + Uvicorn)
 fastapi>=0.110.0
