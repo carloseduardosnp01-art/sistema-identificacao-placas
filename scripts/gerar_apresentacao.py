@@ -3,7 +3,8 @@ Script para Geração da Apresentação de Slides do Projeto ALPR.
 Cria duas versões da apresentação:
 1. apresentacao_projeto_alpr.pptx (PowerPoint Widescreen 16:9 profissional e editável)
 2. apresentacao_projeto_alpr.html (Apresentação Web Interativa com Tailwind CSS e navegação moderna)
-Incorpora todos os gráficos de treinamento (YOLO 1 e YOLO 2) e benchmarks.
+Incorpora todos os gráficos de treinamento (YOLO 1 e YOLO 2), benchmarks e a visualização
+da imagem em cada passo do pipeline acompanhada de suas legendas explicativas.
 """
 
 import os
@@ -18,7 +19,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 OUTPUT_DIR = BASE_DIR / "apresentacao"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# Pastas de Gráficos
+# Pastas de Recursos Visuais
 DIR_YOLO1 = BASE_DIR / "data" / "resultados treinamento modelo de identificação de placa"
 if not DIR_YOLO1.exists():
     for d in (BASE_DIR / "data").glob("*resultados treinamento*identifica*"):
@@ -28,6 +29,7 @@ if not DIR_YOLO1.exists():
 
 DIR_YOLO2 = BASE_DIR / "data" / "resultados treinamento modelo de identificacao de caracteres yolo 2"
 DIR_BENCH = BASE_DIR / "relatorios_benchmark"
+DIR_ETAPAS = BASE_DIR / "apresentacao" / "etapas_pipeline"
 
 # Paleta de Cores Corporativa
 C_AZUL_ESCURO = RGBColor(15, 23, 42)      # #0F172A
@@ -83,7 +85,6 @@ def criar_apresentacao_pptx():
     s1 = prs.slides.add_slide(blank_layout)
     aplicar_fundo(s1, C_AZUL_ESCURO)
     
-    # Detalhe visual (faixa decorativa)
     faixa = s1.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(1.2), Inches(0.18), Inches(5.1))
     faixa.fill.solid()
     faixa.fill.fore_color.rgb = C_AZUL_CLARO
@@ -115,7 +116,7 @@ def criar_apresentacao_pptx():
     p.space_before = Pt(40)
     
     p = tf1.add_paragraph()
-    p.text = "Tecnologias: YOLOv8 / YOLO11 • Roboflow Universe • EasyOCR • OpenCV • FastAPI • SQLite"
+    p.text = "Demonstração Visual: Transformação da Imagem em Cada Passo do Pipeline e Benchmark Oficial"
     p.font.size = Pt(12)
     p.font.color.rgb = RGBColor(148, 163, 184)
     p.font.name = "Arial"
@@ -128,12 +129,11 @@ def criar_apresentacao_pptx():
     aplicar_fundo(s2, C_BRANCO)
     adicionar_cabecalho(s2, "1. O Desafio Real da Identificação Veicular", "Por que leitores convencionais falham em condições reais de tráfego?")
     
-    # 4 Cards de Desafios
     desafios = [
-        ("📐 Rotação & Ângulo", "Câmeras de segurança e tráfego capturam veículos em ângulos inclinados (-35° a +35°). A deformação afim quebra a ordem de leitura dos caracteres."),
-        ("🌗 Iluminação Extrema", "Faróis acesos, reflexos solares na placa de alumínio, sombras duras e penumbra noturna geram estouro de branco ou perda de contraste."),
+        ("📐 Rotação & Ângulo", "Câmeras de tráfego capturam veículos em ângulos inclinados (-35° a +35°). A deformação quebra a ordem horizontal de leitura dos caracteres."),
+        ("🌗 Iluminação Extrema", "Faróis acesos, reflexos solares no alumínio, sombras e penumbra geram estouro de branco ou perda crítica de contraste."),
         ("🔤 Tipografia FE-Schrift", "A fonte oficial do Mercosul foi projetada propositalmente para ser antifraude, confundindo leitores comuns entre 'Q/O', '8/B', '5/S' e '1/I'."),
-        ("🇧🇷 Elementos Espúrios", "A tarja azul superior com a palavra 'BRASIL' e a bandeira geram falsos caracteres iniciais (ex: leitura 'BRA5I30' no lugar da placa real).")
+        ("🇧🇷 Elementos Espúrios", "A tarja azul superior com a palavra 'BRASIL' e a bandeira geram falsos caracteres iniciais (ex: leitura 'BRA5I30' ao invés da placa real).")
     ]
     
     for i, (tit, desc) in enumerate(desafios):
@@ -160,112 +160,201 @@ def criar_apresentacao_pptx():
         p2.space_before = Pt(6)
 
     # =========================================================================
-    # SLIDE 3: ARQUITETURA GLOBAL DO SISTEMA
+    # SLIDE 3: O PIPELINE EM AÇÃO - PANORAMA VISUAL COMPLETO
     # =========================================================================
     s3 = prs.slides.add_slide(blank_layout)
     aplicar_fundo(s3, C_BRANCO)
-    adicionar_cabecalho(s3, "2. Arquitetura do Sistema e Pipeline Híbrido", "Fluxo multicamadas integrando visão computacional, Deep Learning e regras sintáticas")
+    adicionar_cabecalho(s3, "2. O Pipeline em Ação: Visão Panorâmica de Cada Etapa", "Como a imagem é capturada, recortada, nivelada, filtrada e reconhecida até o resultado final")
     
-    etapas_pipeline = [
-        ("1. Captura da Imagem", "Upload web ou câmera", "Suporte a fotos reais de tráfego, estacionamento e vias públicas."),
-        ("2. Detecção da Placa", "YOLO 1 (detector_placas.pt)", "Localiza a bounding box da placa na imagem com mAP@50 > 95%."),
-        ("3. Retificação Geométrica", "Deskew com Hough (OpenCV)", "Detecta o ângulo (-35° a +35°) e desentorta a placa para 0.0° perfeito."),
-        ("4. Multicontraste Dinâmico", "4 Variantes de Pré-processamento", "Corte da tarja azul e geração de imagens em Normal, CLAHE, Otsu e Adaptativo."),
-        ("5. Pipeline Híbrido Votado", "YOLO 2 + EasyOCR Consensual", "Votação caractere a caractere combinando probabilidade neural e morfologia."),
-        ("6. Validação & Consulta", "Regex Mercosul/Cinza + SQLite", "Garante o formato de 7 caracteres e checa status de queixa de roubo/furto.")
+    img_painel = DIR_ETAPAS / "painel_infografico_pipeline_completo.jpg"
+    if img_painel.exists():
+        s3.shapes.add_picture(str(img_painel), Inches(0.8), Inches(1.8), width=Inches(11.7))
+
+    # =========================================================================
+    # SLIDE 4: PASSO A PASSO (1): CAPTURA, DETECÇÃO E CROP BRUTO
+    # =========================================================================
+    s4 = prs.slides.add_slide(blank_layout)
+    aplicar_fundo(s4, C_BRANCO)
+    adicionar_cabecalho(s4, "3. Etapas 1, 2 e 3: Captura, Detecção YOLO e Recorte Bruto", "Da cena urbana completa ao isolamento da região da placa veicular")
+    
+    cards_s4 = [
+        ("etapa_1_imagem_original.jpg", "1. Imagem Original", "Foto bruta capturada em ambiente real de tráfego."),
+        ("etapa_2_deteccao_yolo1.jpg", "2. Detecção YOLO 1", "Localização da bounding box da placa veicular (>95% conf)."),
+        ("etapa_3_crop_bruto_inclinado.jpg", "3. Recorte Bruto (Crop)", "Placa isolada. Note a inclinação angular e a tarja 'BRASIL'.")
     ]
-    
-    for i, (tit, sub, desc) in enumerate(etapas_pipeline):
-        x = Inches(0.8 + (i % 3) * 3.9)
-        y = Inches(1.8 + (i // 3) * 2.6)
-        card = s3.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, y, Inches(3.7), Inches(2.3))
+    for i, (arq, tit, desc) in enumerate(cards_s4):
+        x = Inches(0.8 + i * 3.95)
+        p_img = DIR_ETAPAS / arq
+        if p_img.exists():
+            s4.shapes.add_picture(str(p_img), x, Inches(1.8), width=Inches(3.7))
+        # Card com legenda explicativa
+        card = s4.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, Inches(5.1), Inches(3.7), Inches(1.8))
         card.fill.solid()
         card.fill.fore_color.rgb = C_FUNDO_CARD
         card.line.color.rgb = RGBColor(203, 213, 225)
         
-        tb = s3.shapes.add_textbox(x + Inches(0.15), y + Inches(0.15), Inches(3.4), Inches(2.0))
+        tb = s4.shapes.add_textbox(x + Inches(0.15), Inches(5.2), Inches(3.4), Inches(1.5))
         tf = tb.text_frame
         tf.word_wrap = True
         p = tf.paragraphs[0]
         p.text = tit
-        p.font.size = Pt(13.5)
+        p.font.size = Pt(13)
         p.font.bold = True
         p.font.color.rgb = C_AZUL_MEDIO
         
-        p_sub = tf.add_paragraph()
-        p_sub.text = sub
-        p_sub.font.size = Pt(10.5)
-        p_sub.font.bold = True
-        p_sub.font.color.rgb = C_VERDE
-        p_sub.space_before = Pt(2)
-        
-        p_desc = tf.add_paragraph()
-        p_desc.text = desc
-        p_desc.font.size = Pt(11)
-        p_desc.font.color.rgb = C_CINZA_TEXTO
-        p_desc.space_before = Pt(5)
+        p2 = tf.add_paragraph()
+        p2.text = desc
+        p2.font.size = Pt(11)
+        p2.font.color.rgb = C_CINZA_TEXTO
+        p2.space_before = Pt(4)
 
     # =========================================================================
-    # SLIDE 4: TREINAMENTO DO YOLO 1 (DETECTOR DE PLACAS)
+    # SLIDE 5: PASSO A PASSO (2): RETIFICAÇÃO GEOMÉTRICA (DESKEW)
     # =========================================================================
-    s4 = prs.slides.add_slide(blank_layout)
-    aplicar_fundo(s4, C_BRANCO)
-    adicionar_cabecalho(s4, "3. Treinamento do YOLO 1: Detecção de Placas", "Localização precisa da bounding box da placa veicular na imagem completa")
+    s5 = prs.slides.add_slide(blank_layout)
+    aplicar_fundo(s5, C_BRANCO)
+    adicionar_cabecalho(s5, "4. Etapa 4: Retificação Geométrica (Deskew com Hough)", "Alinhamento automático do ângulo de rotação da placa para 0.0° perfeito")
     
-    # Texto à esquerda
-    tb4 = s4.shapes.add_textbox(Inches(0.8), Inches(1.8), Inches(5.6), Inches(5.0))
-    tf4 = tb4.text_frame
-    tf4.word_wrap = True
+    # Imagem antes e depois
+    img_antes = DIR_ETAPAS / "etapa_3_crop_bruto_inclinado.jpg"
+    img_depois = DIR_ETAPAS / "etapa_4_retificacao_deskew.jpg"
     
+    if img_antes.exists():
+        s5.shapes.add_picture(str(img_antes), Inches(0.8), Inches(1.8), width=Inches(5.6))
+    if img_depois.exists():
+        s5.shapes.add_picture(str(img_depois), Inches(6.9), Inches(1.8), width=Inches(5.6))
+        
+    tb5 = s5.shapes.add_textbox(Inches(0.8), Inches(5.1), Inches(11.7), Inches(1.8))
+    tf5 = tb5.text_frame
+    tf5.word_wrap = True
+    p = tf5.paragraphs[0]
+    p.text = "💡 O que aconteceu neste passo:"
+    p.font.size = Pt(14)
+    p.font.bold = True
+    p.font.color.rgb = C_AZUL_MEDIO
+    
+    p2 = tf5.add_paragraph()
+    p2.text = "• Bordas Canny + cv2.HoughLinesP detectaram segmentos horizontais na placa inclinada (+11.6° de desvio).\n• A mediana angular calculou a rotação exata e cv2.warpAffine aplicou a matriz afim corretiva.\n• Resultado: A placa agora entra perfeitamente nivelada no OCR, gerando um ganho imediato de +23,0% na taxa de leitura."
+    p2.font.size = Pt(12)
+    p2.font.color.rgb = C_AZUL_ESCURO
+    p2.space_before = Pt(4)
+
+    # =========================================================================
+    # SLIDE 6: PASSO A PASSO (3): ISOLAMENTO DO MIOLO & MULTICONTRASTE
+    # =========================================================================
+    s6 = prs.slides.add_slide(blank_layout)
+    aplicar_fundo(s6, C_BRANCO)
+    adicionar_cabecalho(s6, "5. Etapas 5 e 6: Corte da Tarja 'BRASIL' e Multicontraste Dinâmico", "Eliminação do falso prefixo 'BRA' e geração simultânea das 4 variantes de contraste")
+    
+    img_miolo = DIR_ETAPAS / "etapa_5_corte_tarja_brasil.jpg"
+    img_multi = DIR_ETAPAS / "etapa_6_multicontraste_4filtros.jpg"
+    
+    if img_miolo.exists():
+        s6.shapes.add_picture(str(img_miolo), Inches(0.8), Inches(1.8), width=Inches(5.6))
+    if img_multi.exists():
+        s6.shapes.add_picture(str(img_multi), Inches(6.9), Inches(1.8), width=Inches(5.6))
+        
+    tb6 = s6.shapes.add_textbox(Inches(0.8), Inches(5.1), Inches(11.7), Inches(1.8))
+    tf6 = tb6.text_frame
+    tf6.word_wrap = True
+    p = tf6.paragraphs[0]
+    p.text = "💡 O que aconteceu nestes passos:"
+    p.font.size = Pt(14)
+    p.font.bold = True
+    p.font.color.rgb = C_AZUL_MEDIO
+    
+    p2 = tf6.add_paragraph()
+    p2.text = "• Remoção da Tarja Azul: Descarte dos 20% do topo da placa, impedindo que 'BRASIL' e a bandeira gerem falsos caracteres.\n• 4 Filtros Concorrentes: Avaliação em Normal HD, Realce CLAHE + Sharpen (sombras suaves), Binarização Otsu (sombras densas) e Limiar Adaptativo Local (reflexos de farol).\n• Resultado: Ganho de +24,0% de acurácia, tornando o sistema imune a variações severas de luz."
+    p2.font.size = Pt(12)
+    p2.font.color.rgb = C_AZUL_ESCURO
+    p2.space_before = Pt(4)
+
+    # =========================================================================
+    # SLIDE 7: PASSO A PASSO (4): RECONHECIMENTO YOLO 2 E RESULTADO FINAL
+    # =========================================================================
+    s7 = prs.slides.add_slide(blank_layout)
+    aplicar_fundo(s7, C_BRANCO)
+    adicionar_cabecalho(s7, "6. Etapas 7 e 8: YOLO de Caracteres, Fusão Híbrida e Consulta", "Detecção individual dos 7 caracteres, votação por confiança e status policial")
+    
+    img_chars = DIR_ETAPAS / "etapa_7_yolo2_deteccao_caracteres.jpg"
+    img_final = DIR_ETAPAS / "etapa_8_consenso_e_consulta_policial.jpg"
+    
+    if img_chars.exists():
+        s7.shapes.add_picture(str(img_chars), Inches(0.8), Inches(1.8), width=Inches(5.6))
+    if img_final.exists():
+        s7.shapes.add_picture(str(img_final), Inches(6.9), Inches(1.8), width=Inches(5.6))
+        
+    tb7 = s7.shapes.add_textbox(Inches(0.8), Inches(5.1), Inches(11.7), Inches(1.8))
+    tf7 = tb7.text_frame
+    tf7.word_wrap = True
+    p = tf7.paragraphs[0]
+    p.text = "💡 O que aconteceu nestes passos:"
+    p.font.size = Pt(14)
+    p.font.bold = True
+    p.font.color.rgb = C_AZUL_MEDIO
+    
+    p2 = tf7.add_paragraph()
+    p2.text = "• Detecção pelo YOLO 2: Cada caractere ('Q', 'C', 'U', '5', 'C', '7', '0') tem sua caixa delimitadora identificada e ordenada.\n• Votação Ponderada: O EasyOCR valida a morfologia da fonte FE-Schrift e o YOLO arbitra a certeza posicional.\n• Consulta Policial Instantânea: Placa formatada validada e consultada no banco SQLite com resultado REGULAR."
+    p2.font.size = Pt(12)
+    p2.font.color.rgb = C_AZUL_ESCURO
+    p2.space_before = Pt(4)
+
+    # =========================================================================
+    # SLIDE 8: TREINAMENTO DO YOLO 1 (DETECTOR DE PLACAS)
+    # =========================================================================
+    s8 = prs.slides.add_slide(blank_layout)
+    aplicar_fundo(s8, C_BRANCO)
+    adicionar_cabecalho(s8, "7. Treinamento do YOLO 1: Detecção de Placas", "Localização precisa da bounding box da placa veicular na imagem completa")
+    
+    tb8 = s8.shapes.add_textbox(Inches(0.8), Inches(1.8), Inches(5.6), Inches(5.0))
+    tf8 = tb8.text_frame
+    tf8.word_wrap = True
     itens_y1 = [
         ("📦 Dataset de Treino:", "Open Images V7 combinado com amostras de veículos brasileiros em tráfego."),
-        ("⚙️ Hiperparâmetros:", "YOLOv8 Nano, Batch 16, Resolução de 640px com Data Augmentation automático (escala, brilho, leve rotação)."),
+        ("⚙️ Hiperparâmetros:", "YOLOv8 Nano, Batch 16, Resolução de 640px com Data Augmentation automático."),
         ("🎯 Desempenho:", "Alcançou rápida convergência nas primeiras 30 épocas com mAP@50 > 95%."),
-        ("💡 Papel no Pipeline:", "Isola com precisão os limites da placa veicular, descartando o veículo e o cenário urbano ao redor para alimentar os estágios seguintes.")
+        ("💡 Papel no Pipeline:", "Isola com precisão os limites da placa veicular, descartando o veículo e o cenário urbano ao redor.")
     ]
     for i, (t, d) in enumerate(itens_y1):
-        p = tf4.paragraphs[0] if i == 0 else tf4.add_paragraph()
+        p = tf8.paragraphs[0] if i == 0 else tf8.add_paragraph()
         p.text = f"{t} {d}"
         p.font.size = Pt(13)
         p.font.color.rgb = C_AZUL_ESCURO
         p.space_before = Pt(12)
         
-    # Imagem à direita (results.png ou BoxPR_curve do YOLO 1)
     img_y1 = DIR_YOLO1 / "results.png"
     if not img_y1.exists():
         img_y1 = DIR_YOLO1 / "BoxPR_curve.png"
     if img_y1.exists():
-        s4.shapes.add_picture(str(img_y1), Inches(6.6), Inches(1.8), width=Inches(5.9))
+        s8.shapes.add_picture(str(img_y1), Inches(6.6), Inches(1.8), width=Inches(5.9))
 
     # =========================================================================
-    # SLIDE 5: TREINAMENTO DO YOLO 2 (CARACTERES - ROBOFLOW)
+    # SLIDE 9: TREINAMENTO DO YOLO 2 (CARACTERES - ROBOFLOW)
     # =========================================================================
-    s5 = prs.slides.add_slide(blank_layout)
-    aplicar_fundo(s5, C_BRANCO)
-    adicionar_cabecalho(s5, "4. Treinamento do YOLO 2: Reconhecimento de Caracteres", "Modelo especializado em 36 classes (0-9 e A-Z) treinado no Roboflow Universe")
+    s9 = prs.slides.add_slide(blank_layout)
+    aplicar_fundo(s9, C_BRANCO)
+    adicionar_cabecalho(s9, "8. Treinamento do YOLO 2: Reconhecimento de Caracteres", "Modelo especializado em 36 classes (0-9 e A-Z) treinado no Roboflow Universe")
     
-    # Imagem à esquerda (cartão de métricas ou results do YOLO 2)
     img_y2_card = DIR_YOLO2 / "metricas_roboflow_yolo2.png"
     if img_y2_card.exists():
-        s5.shapes.add_picture(str(img_y2_card), Inches(0.8), Inches(1.8), width=Inches(6.2))
+        s9.shapes.add_picture(str(img_y2_card), Inches(0.8), Inches(1.8), width=Inches(6.2))
         
-    # Texto e curvas à direita
     img_y2_res = DIR_YOLO2 / "BoxPR_curve.png"
     if img_y2_res.exists():
-        s5.shapes.add_picture(str(img_y2_res), Inches(7.3), Inches(1.8), width=Inches(5.2))
+        s9.shapes.add_picture(str(img_y2_res), Inches(7.3), Inches(1.8), width=Inches(5.2))
 
     # =========================================================================
-    # SLIDE 6: O CHOQUE DE REALIDADE (POR QUE 99% VIROU 7% NO MUNDO REAL?)
+    # SLIDE 10: O CHOQUE DE REALIDADE (EFEITO CASCATA DE ERRO)
     # =========================================================================
-    s6 = prs.slides.add_slide(blank_layout)
-    aplicar_fundo(s6, C_BRANCO)
-    adicionar_cabecalho(s6, "5. O Choque de Realidade: O Efeito Cascata de Erro", "Por que uma rede neural com 99,3% de mAP alcançou apenas 7,0% de acerto nas placas reais?")
+    s10 = prs.slides.add_slide(blank_layout)
+    aplicar_fundo(s10, C_BRANCO)
+    adicionar_cabecalho(s10, "9. O Choque de Realidade: O Efeito Cascata de Erro", "Por que uma rede neural com 99,3% de mAP alcançou apenas 7,0% de acerto nas placas reais?")
     
-    tb6 = s6.shapes.add_textbox(Inches(0.8), Inches(1.8), Inches(11.7), Inches(5.0))
-    tf6 = tb6.text_frame
-    tf6.word_wrap = True
+    tb10 = s10.shapes.add_textbox(Inches(0.8), Inches(1.8), Inches(11.7), Inches(5.0))
+    tf10 = tb10.text_frame
+    tf10.word_wrap = True
     
-    p = tf6.paragraphs[0]
+    p = tf10.paragraphs[0]
     p.text = "A Matemática da Falha em Reconhecimento Sequencial de Caracteres"
     p.font.size = Pt(16)
     p.font.bold = True
@@ -278,28 +367,28 @@ def criar_apresentacao_pptx():
         "4. Conclusão Crítica de Engenharia: Nenhum modelo de Deep Learning isolado resolve o problema do mundo real sem pré-processamento geométrico, desambiguação morfológica e fusão de modelos redundantes."
     ]
     for pt in pontos_choque:
-        p_pt = tf6.add_paragraph()
+        p_pt = tf10.add_paragraph()
         p_pt.text = pt
         p_pt.font.size = Pt(13)
         p_pt.font.color.rgb = C_AZUL_ESCURO
         p_pt.space_before = Pt(12)
 
     # =========================================================================
-    # SLIDE 7: O COMPARATIVO: YOLO ISOLADO VS EASYOCR ISOLADO
+    # SLIDE 11: BATALHA DIRETA: YOLO VS OCR VS HÍBRIDO
     # =========================================================================
-    s7 = prs.slides.add_slide(blank_layout)
-    aplicar_fundo(s7, C_BRANCO)
-    adicionar_cabecalho(s7, "6. Batalha Direta: YOLO Isolado vs EasyOCR Isolado", "Avaliação cega independente sobre as 71 imagens reais do Google Drive")
+    s11 = prs.slides.add_slide(blank_layout)
+    aplicar_fundo(s11, C_BRANCO)
+    adicionar_cabecalho(s11, "10. Batalha Direta: YOLO Isolado vs EasyOCR Isolado", "Avaliação cega independente sobre as 71 imagens reais do Google Drive")
     
     img_comp = DIR_BENCH / "grafico_1_comparativo_yolo_ocr_hibrido.png"
     if img_comp.exists():
-        s7.shapes.add_picture(str(img_comp), Inches(0.8), Inches(1.8), width=Inches(7.2))
+        s11.shapes.add_picture(str(img_comp), Inches(0.8), Inches(1.8), width=Inches(7.2))
         
-    tb7 = s7.shapes.add_textbox(Inches(8.3), Inches(1.8), Inches(4.3), Inches(5.0))
-    tf7 = tb7.text_frame
-    tf7.word_wrap = True
+    tb11 = s11.shapes.add_textbox(Inches(8.3), Inches(1.8), Inches(4.3), Inches(5.0))
+    tf11 = tb11.text_frame
+    tf11.word_wrap = True
     
-    p = tf7.paragraphs[0]
+    p = tf11.paragraphs[0]
     p.text = "Resultados Práticos Obtidos:"
     p.font.size = Pt(15)
     p.font.bold = True
@@ -311,149 +400,72 @@ def criar_apresentacao_pptx():
         "🟢 Pipeline Híbrido: 95,8% nas placas principais (89,4% geral). Salto de +52,1% de acurácia sobre o melhor motor isolado!"
     ]
     for r in resumo_batalha:
-        p_r = tf7.add_paragraph()
+        p_r = tf11.add_paragraph()
         p_r.text = r
         p_r.font.size = Pt(12.5)
         p_r.font.color.rgb = C_AZUL_ESCURO
         p_r.space_before = Pt(10)
 
     # =========================================================================
-    # SLIDE 8: RETIFICAÇÃO GEOMÉTRICA (DESKEW HOUGH)
+    # SLIDE 12: EVOLUÇÃO E GANHO INCREMENTAL POR TÉCNICA
     # =========================================================================
-    s8 = prs.slides.add_slide(blank_layout)
-    aplicar_fundo(s8, C_BRANCO)
-    adicionar_cabecalho(s8, "7. Solução Técnica 1: Retificação Geométrica (Deskew)", "Alinhamento angular automático via Transformada de Hough (Ganho: +23,0%)")
+    s12 = prs.slides.add_slide(blank_layout)
+    aplicar_fundo(s12, C_BRANCO)
+    adicionar_cabecalho(s12, "11. Evolução Incremental e Ganhos Marginais", "O que cada técnica técnica melhorou e a evolução acumulada do pipeline")
     
-    tb8 = s8.shapes.add_textbox(Inches(0.8), Inches(1.8), Inches(11.7), Inches(4.8))
-    tf8 = tb8.text_frame
-    tf8.word_wrap = True
+    img_g2 = DIR_BENCH / "grafico_2_evolucao_etapas.png"
+    img_g3 = DIR_BENCH / "grafico_3_ganho_por_metodo.png"
     
-    itens_s8 = [
-        ("1. O Problema Enfrentado:", "Placas de motos e veículos capturados lateralmente apresentavam rotação entre -35° e +35°. Com a placa inclinada, o OCR perdia a linha de texto e o detector de caracteres ordenava caixas fora de sequência horizontal."),
-        ("2. O Algoritmo Implementado:", "Desenvolvido endireitar_placa_hough() em OpenCV: conversão em escala de cinza, extração de bordas Canny e detecção de segmentos lineares com cv2.HoughLinesP."),
-        ("3. Estimativa Angular:", "Cálculo trigonométrico arctan2((y2-y1)/(x2-x1)) de todas as linhas com ângulo entre -35° e +35°, extraindo a mediana estatística para máxima robustez contra ruídos."),
-        ("4. Correção Afim:", "Geração de matriz cv2.getRotationMatrix2D e rotação por interpolação bicúbica com cv2.warpAffine, garantindo que a placa entre a 0.0° perfeito no OCR."),
-        ("5. Impacto Medido:", "Elevou a precisão do sistema de 15,0% para 38,0% (+23,0% de ganho absoluto).")
-    ]
-    for i, (t, d) in enumerate(itens_s8):
-        p = tf8.paragraphs[0] if i == 0 else tf8.add_paragraph()
-        p.text = f"{t} {d}"
-        p.font.size = Pt(12.5)
-        p.font.color.rgb = C_AZUL_ESCURO
-        p.space_before = Pt(8)
+    if img_g2.exists():
+        s12.shapes.add_picture(str(img_g2), Inches(0.8), Inches(1.8), width=Inches(5.7))
+    if img_g3.exists():
+        s12.shapes.add_picture(str(img_g3), Inches(6.8), Inches(1.8), width=Inches(5.7))
 
     # =========================================================================
-    # SLIDE 9: PRÉ-PROCESSAMENTO MULTICONTRASTE E TARJA BRASIL
+    # SLIDE 13: QUALIDADE DE LEITURA E SEVERIDADE DE ERROS
     # =========================================================================
-    s9 = prs.slides.add_slide(blank_layout)
-    aplicar_fundo(s9, C_BRANCO)
-    adicionar_cabecalho(s9, "8. Solução Técnica 2: Pré-processamento Multicontraste", "Eliminação da tarja azul 'BRASIL' e 4 variantes dinâmicas de imagem (Ganho: +24,0%)")
+    s13 = prs.slides.add_slide(blank_layout)
+    aplicar_fundo(s13, C_BRANCO)
+    adicionar_cabecalho(s13, "12. Qualidade da Leitura e Eliminação de Erros Graves", "Distribuição da distância de edição (Levenshtein) no conjunto de teste")
     
-    tb9 = s9.shapes.add_textbox(Inches(0.8), Inches(1.8), Inches(11.7), Inches(4.8))
-    tf9 = tb9.text_frame
-    tf9.word_wrap = True
-    
-    itens_s9 = [
-        ("1. Corte Estratégico da Tarja Azul:", "Na placa Mercosul, a palavra 'BRASIL' e a bandeira ocupam os primeiros 20% do topo. Criamos um recorte morfológico isolando o miolo (h*0.20 a h*0.95), eliminando o falso prefixo 'BRA' que poluía as leituras."),
-        ("2. Normalização de Resolução:", "Redimensionamento proporcional via interpolação Lanczos4 para altura fixa de 220px, permitindo que caracteres pequenos atinjam resolução legível."),
-        ("3. As 4 Variantes de Imagem:", "O pipeline avalia simultaneamente 4 tratamentos independentes:\n   • Variante 1 (Normal): Imagem original retificada em alta resolução.\n   • Variante 2 (Realce CLAHE): Equalização adaptativa de histograma + filtro de sharpening de bordas.\n   • Variante 3 (Binarização Otsu): Segmentação global preto e branco ideal para placas com sombra.\n   • Variante 4 (Adaptativa Local): Binarização de limiar móvel para placas com reflexo direto de farol."),
-        ("4. Impacto Medido:", "Elevou a acurácia de 38,0% para 62,0% (+24,0% de ganho absoluto).")
-    ]
-    for i, (t, d) in enumerate(itens_s9):
-        p = tf9.paragraphs[0] if i == 0 else tf9.add_paragraph()
-        p.text = f"{t} {d}"
-        p.font.size = Pt(12.5)
-        p.font.color.rgb = C_AZUL_ESCURO
-        p.space_before = Pt(8)
-
-    # =========================================================================
-    # SLIDE 10: DESAMBIGUAÇÃO MORFOLÓGICA FE-SCHRIFT
-    # =========================================================================
-    s10 = prs.slides.add_slide(blank_layout)
-    aplicar_fundo(s10, C_BRANCO)
-    adicionar_cabecalho(s10, "9. Solução Técnica 3: Desambiguação FE-Schrift", "Engenharia reversa das regras tipográficas antifraude do Mercosul (Ganho: +16,0%)")
-    
-    tb10 = s10.shapes.add_textbox(Inches(0.8), Inches(1.8), Inches(11.7), Inches(4.8))
-    tf10 = tb10.text_frame
-    tf10.word_wrap = True
-    
-    itens_s10 = [
-        ("1. O Segredo da Fonte FE-Schrift:", "Criada na Alemanha (Fälschungserschwerende Schrift), foi adotada no Mercosul com traços interrompidos para impedir adulterações manuais (ex: transformar um 'O' em 'Q' com fita preta)."),
-        ("2. O Problema nos OCRs Genéricos:", "Modelos padrão confundem frequentemente as letras e dígitos dessa tipografia:\n   • 'Q' é lido como 'O' ou 'G' devido à abertura na perna.\n   • 'B' é lido como '8' e '8' é lido como 'B'.\n   • 'S' é lido como '5' e '5' é lido como 'S'.\n   • '1' e 'I' possuem formato idêntico."),
-        ("3. Regras Sintáticas Posicionais:", "Implementamos em src/desambiguacao.py a correção estrutural baseada no padrão brasileiro:\n   • Posições 0, 1 e 2: Devem ser estritamente LETRAS (força '0'->'O', '8'->'B', '5'->'S').\n   • Posição 3: Deve ser estritamente DÍGITO (força 'O'->'0', 'B'->'8', 'S'->'5').\n   • Posição 4: Mercosul é LETRA (ex: 'C'), Antiga é DÍGITO (ex: '3').\n   • Posições 5 e 6: Devem ser estritamente DÍGITOS."),
-        ("4. Impacto Medido:", "Elevou a acurácia de 62,0% para 78,0% (+16,0% de ganho absoluto).")
-    ]
-    for i, (t, d) in enumerate(itens_s10):
-        p = tf10.paragraphs[0] if i == 0 else tf10.add_paragraph()
-        p.text = f"{t} {d}"
-        p.font.size = Pt(12.5)
-        p.font.color.rgb = C_AZUL_ESCURO
-        p.space_before = Pt(8)
-
-    # =========================================================================
-    # SLIDE 11: A VIRADA DE CHAVE: O PIPELINE HÍBRIDO VOTADO
-    # =========================================================================
-    s11 = prs.slides.add_slide(blank_layout)
-    aplicar_fundo(s11, C_BRANCO)
-    adicionar_cabecalho(s11, "10. A Virada de Chave: Fusão Ponderada (YOLO + OCR)", "Atingindo 95,8% de acurácia com votação inteligente e redundância de modelos")
-    
-    img_evol = DIR_BENCH / "grafico_2_evolucao_etapas.png"
-    if img_evol.exists():
-        s11.shapes.add_picture(str(img_evol), Inches(0.8), Inches(1.8), width=Inches(7.2))
+    img_g4 = DIR_BENCH / "grafico_4_distribuicao_qualidade_leitura.png"
+    if img_g4.exists():
+        s13.shapes.add_picture(str(img_g4), Inches(0.8), Inches(1.8), width=Inches(7.2))
         
-    tb11 = s11.shapes.add_textbox(Inches(8.3), Inches(1.8), Inches(4.3), Inches(5.0))
-    tf11 = tb11.text_frame
-    tf11.word_wrap = True
-    
-    p = tf11.paragraphs[0]
-    p.text = "Como funciona o Consenso:"
+    tb13 = s13.shapes.add_textbox(Inches(8.3), Inches(1.8), Inches(4.3), Inches(5.0))
+    tf13 = tb13.text_frame
+    tf13.word_wrap = True
+    p = tf13.paragraphs[0]
+    p.text = "Análise da Qualidade:"
     p.font.size = Pt(15)
     p.font.bold = True
     p.font.color.rgb = C_AZUL_MEDIO
     
-    itens_s11 = [
-        "1. Execução Concorrente: Ambos os motores processam a placa retificada.",
-        "2. Votação por Confiança: Se o OCR e o YOLO concordam, a confiança é máxima.",
-        "3. Arbitragem Especializada: Em caracteres colados ou com reflexo (ex: 'M' vs 'H'), a matriz de probabilidade pondera quem possui maior certeza posicional.",
-        "4. Resultado Consolidado: Atingiu 95,8% de acerto exato nas fotos reais!"
+    pontos_q = [
+        "• Erros parciais (1 ou 2 caracteres) caíram de 32,4% no YOLO/OCR isolados para 0,0% no Pipeline Híbrido.",
+        "• 95,8% das placas são lidas com precisão cirúrgica de 100%.",
+        "• As únicas 3 divergências remanescentes ocorreram em fotos noturnas extremas ou placas desfocadas no fundo distante."
     ]
-    for item in itens_s11:
-        p_it = tf11.add_paragraph()
-        p_it.text = item
-        p_it.font.size = Pt(12.5)
-        p_it.font.color.rgb = C_AZUL_ESCURO
-        p_it.space_before = Pt(10)
+    for pt in pontos_q:
+        p_pt = tf13.add_paragraph()
+        p_pt.text = pt
+        p_pt.font.size = Pt(12)
+        p_pt.font.color.rgb = C_AZUL_ESCURO
+        p_pt.space_before = Pt(10)
 
     # =========================================================================
-    # SLIDE 12: IMPACTO POR TÉCNICA E DISTRIBUIÇÃO DE ERROS
+    # SLIDE 14: REENGENHARIA WEB: FASTAPI + TAILWIND CSS
     # =========================================================================
-    s12 = prs.slides.add_slide(blank_layout)
-    aplicar_fundo(s12, C_BRANCO)
-    adicionar_cabecalho(s12, "11. Impacto por Técnica e Distribuição da Qualidade", "Ganhos incrementais e eliminação quase total de erros parciais e graves")
+    s14 = prs.slides.add_slide(blank_layout)
+    aplicar_fundo(s14, C_BRANCO)
+    adicionar_cabecalho(s14, "13. Nova Arquitetura de Software: Migração para FastAPI", "Substituição do Streamlit por backend assíncrono ultraleve e interface moderna")
     
-    img_g3 = DIR_BENCH / "grafico_3_ganho_por_metodo.png"
-    img_g4 = DIR_BENCH / "grafico_4_distribuicao_qualidade_leitura.png"
-    
-    if img_g3.exists():
-        s12.shapes.add_picture(str(img_g3), Inches(0.8), Inches(1.8), width=Inches(5.6))
-    if img_g4.exists():
-        s12.shapes.add_picture(str(img_g4), Inches(6.8), Inches(1.8), width=Inches(5.7))
-
-    # =========================================================================
-    # SLIDE 13: REENGENHARIA WEB: FASTAPI + TAILWIND CSS
-    # =========================================================================
-    s13 = prs.slides.add_slide(blank_layout)
-    aplicar_fundo(s13, C_BRANCO)
-    adicionar_cabecalho(s13, "12. Nova Arquitetura de Software: Migração para FastAPI", "Substituição do Streamlit por backend assíncrono ultraleve e interface moderna")
-    
-    # 2 Colunas de Comparação
-    # Coluna 1: Streamlit
-    card_st = s13.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.8), Inches(5.6), Inches(4.8))
+    card_st = s14.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.8), Inches(5.6), Inches(4.8))
     card_st.fill.solid()
     card_st.fill.fore_color.rgb = RGBColor(254, 242, 242)
     card_st.line.color.rgb = RGBColor(252, 165, 165)
     
-    tbst = s13.shapes.add_textbox(Inches(1.0), Inches(2.0), Inches(5.2), Inches(4.4))
+    tbst = s14.shapes.add_textbox(Inches(1.0), Inches(2.0), Inches(5.2), Inches(4.4))
     tfst = tbst.text_frame
     tfst.word_wrap = True
     p = tfst.paragraphs[0]
@@ -475,13 +487,12 @@ def criar_apresentacao_pptx():
         p_pt.font.color.rgb = RGBColor(153, 27, 27)
         p_pt.space_before = Pt(8)
         
-    # Coluna 2: FastAPI + Tailwind
-    card_fa = s13.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.8), Inches(1.8), Inches(5.7), Inches(4.8))
+    card_fa = s14.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.8), Inches(1.8), Inches(5.7), Inches(4.8))
     card_fa.fill.solid()
     card_fa.fill.fore_color.rgb = RGBColor(240, 253, 244)
     card_fa.line.color.rgb = RGBColor(134, 239, 172)
     
-    tbfa = s13.shapes.add_textbox(Inches(7.0), Inches(2.0), Inches(5.3), Inches(4.4))
+    tbfa = s14.shapes.add_textbox(Inches(7.0), Inches(2.0), Inches(5.3), Inches(4.4))
     tffa = tbfa.text_frame
     tffa.word_wrap = True
     p = tffa.paragraphs[0]
@@ -493,8 +504,8 @@ def criar_apresentacao_pptx():
     pontos_fa = [
         "• Modelos Pré-carregados: Os pesos neurais permanecem em memória RAM/GPU na inicialização via lifespan.",
         "• Inferência Assíncrona: Endpoint REST POST /api/detectar processa e devolve a resposta instantaneamente.",
-        "• Interface Moderna: Design Glassmorphism em Tailwind CSS, badge Mercosul fiel e visualização dinâmica de caixas delimitadoras.",
-        "• Gestão de Banco Integrada: Consulta e cadastro de veículos regulares ou com queixa de roubo/furto no SQLite diretamente na tela."
+        "• Interface Moderna: Design Glassmorphism em Tailwind CSS, badge Mercosul fiel e caixas delimitadoras dinâmicas.",
+        "• Gestão de Banco Integrada: Consulta e cadastro de veículos regulares ou roubados no SQLite diretamente na tela."
     ]
     for pt in pontos_fa:
         p_pt = tffa.add_paragraph()
@@ -504,34 +515,33 @@ def criar_apresentacao_pptx():
         p_pt.space_before = Pt(8)
 
     # =========================================================================
-    # SLIDE 14: DASHBOARD EXECUTIVO CONSOLIDADO E CONCLUSÕES
+    # SLIDE 15: DASHBOARD EXECUTIVO CONSOLIDADO E CONCLUSÕES
     # =========================================================================
-    s14 = prs.slides.add_slide(blank_layout)
-    aplicar_fundo(s14, C_BRANCO)
-    adicionar_cabecalho(s14, "13. Dashboard Executivo e Conclusões Finais", "Resumo das conquistas do projeto e visão holística do sistema ALPR")
+    s15 = prs.slides.add_slide(blank_layout)
+    aplicar_fundo(s15, C_BRANCO)
+    adicionar_cabecalho(s15, "14. Dashboard Executivo e Conclusões Finais", "Resumo das conquistas do projeto e visão holística do sistema ALPR")
     
     img_dash = DIR_BENCH / "painel_executivo_evolucao_completo.png"
     if img_dash.exists():
-        s14.shapes.add_picture(str(img_dash), Inches(0.8), Inches(1.8), width=Inches(7.2))
+        s15.shapes.add_picture(str(img_dash), Inches(0.8), Inches(1.8), width=Inches(7.2))
         
-    tb14 = s14.shapes.add_textbox(Inches(8.3), Inches(1.8), Inches(4.3), Inches(5.0))
-    tf14 = tb14.text_frame
-    tf14.word_wrap = True
-    
-    p = tf14.paragraphs[0]
+    tb15 = s15.shapes.add_textbox(Inches(8.3), Inches(1.8), Inches(4.3), Inches(5.0))
+    tf15 = tb15.text_frame
+    tf15.word_wrap = True
+    p = tf15.paragraphs[0]
     p.text = "Conclusões do Projeto:"
     p.font.size = Pt(15)
     p.font.bold = True
     p.font.color.rgb = C_AZUL_MEDIO
     
     conclusoes = [
-        "1. IA no mundo real exige engenharia: Um modelo com 99% em benchmark isolado necessita de tratamento afim e sintático para operar com confiabilidade.",
+        "1. IA no mundo real exige engenharia: Um modelo com 99% em laboratório necessita de tratamento afim e sintático para operar com confiabilidade.",
         "2. Redundância Híbrida: A união de YOLO + EasyOCR superou os limites individuais de cada tecnologia.",
         "3. Sistema Pronto para Produção: Nova interface web em FastAPI leve, responsiva e pronta para câmeras em tempo real.",
-        "4. Repositório 100% Documentado: Código limpo, relatórios em planilha Excel/CSV e gráficos de alta resolução."
+        "4. Repositório 100% Documentado: Código limpo, planilhas Excel/CSV e gráficos de alta resolução salvos no GitHub."
     ]
     for c in conclusoes:
-        p_c = tf14.add_paragraph()
+        p_c = tf15.add_paragraph()
         p_c.text = c
         p_c.font.size = Pt(12)
         p_c.font.color.rgb = C_AZUL_ESCURO
@@ -543,7 +553,7 @@ def criar_apresentacao_pptx():
 
 
 def criar_apresentacao_html():
-    """Gera uma apresentação Web Interativa em HTML moderna e responsiva."""
+    """Gera uma apresentação Web Interativa em HTML moderna e responsiva com todas as etapas visuais."""
     caminho_html = OUTPUT_DIR / "apresentacao_projeto_alpr.html"
     
     html_content = """<!DOCTYPE html>
@@ -560,19 +570,18 @@ def criar_apresentacao_html():
         .slide { display: none; min-height: 85vh; }
         .slide.active { display: flex; }
         .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .mercosul-border { border-top: 14px solid #003399; }
     </style>
 </head>
 <body class="flex flex-col justify-between min-h-screen select-none">
 
     <!-- BARRA SUPERIOR -->
-    <header class="w-full bg-slate-900/80 border-b border-slate-800 px-8 py-4 flex justify-between items-center z-50">
+    <header class="w-full bg-slate-900/80 border-b border-slate-800 px-8 py-3.5 flex justify-between items-center z-50">
         <div class="flex items-center space-x-3">
             <span class="bg-blue-600 text-white font-black text-xs px-2.5 py-1 rounded tracking-widest uppercase">ALPR PRO</span>
             <span class="text-sm font-semibold text-slate-300">Sistema de Identificação de Placas e Consulta Policial</span>
         </div>
         <div class="flex items-center space-x-4">
-            <span id="slideIndicator" class="text-xs font-mono font-bold bg-slate-800 text-blue-400 px-3 py-1 rounded-full border border-slate-700">Slide 1 / 14</span>
+            <span id="slideIndicator" class="text-xs font-mono font-bold bg-slate-800 text-blue-400 px-3 py-1 rounded-full border border-slate-700">Slide 1 / 15</span>
             <button onclick="toggleFullScreen()" class="text-slate-400 hover:text-white text-sm transition" title="Tela Cheia"><i class="fa-solid fa-expand"></i></button>
         </div>
     </header>
@@ -598,8 +607,8 @@ def criar_apresentacao_html():
                     <p class="text-sm font-medium text-slate-200 mt-1">Caio Felipe G. Lopes • Davi Alves Mares • Carlos Eduardo Pena Fiel Menon de Freitas</p>
                 </div>
                 <div class="glass-card p-4 rounded-xl border border-slate-700/50">
-                    <span class="text-xs font-bold text-emerald-400 tracking-wider uppercase">Stack Tecnológico</span>
-                    <p class="text-sm font-medium text-slate-200 mt-1">YOLOv8/11 • Roboflow Universe • EasyOCR • OpenCV • FastAPI • SQLite</p>
+                    <span class="text-xs font-bold text-emerald-400 tracking-wider uppercase">Visualização & Demonstração</span>
+                    <p class="text-sm font-medium text-slate-200 mt-1">Transformação visual da imagem em cada estágio com legendas explicativas</p>
                 </div>
             </div>
         </div>
@@ -631,51 +640,114 @@ def criar_apresentacao_html():
             </div>
         </div>
 
-        <!-- SLIDE 3: ARQUITETURA GLOBAL -->
-        <div class="slide flex-col justify-center space-y-6 w-full">
+        <!-- SLIDE 3: O PIPELINE EM AÇÃO - INFOGRÁFICO COMPLETO -->
+        <div class="slide flex-col justify-center space-y-4 w-full">
             <div>
-                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 2</span>
-                <h2 class="text-3xl font-extrabold text-white mt-1">Arquitetura Multicamadas do Pipeline</h2>
-                <p class="text-sm text-slate-400">Fluxo completo de processamento em 6 estágios integrados</p>
+                <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Capítulo 2</span>
+                <h2 class="text-2xl md:text-3xl font-extrabold text-white">O Pipeline em Ação: Visão Panorâmica</h2>
+                <p class="text-sm text-slate-400">Como a imagem se transforma visualmente do início ao fim do processo</p>
+            </div>
+            <div class="glass-card p-2 rounded-xl flex items-center justify-center overflow-hidden">
+                <img src="etapas_pipeline/painel_infografico_pipeline_completo.jpg" class="max-h-[72vh] w-full rounded-lg object-contain shadow-2xl">
+            </div>
+        </div>
+
+        <!-- SLIDE 4: ETAPAS 1, 2 E 3 VISUAL -->
+        <div class="slide flex-col justify-center space-y-4 w-full">
+            <div>
+                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 3</span>
+                <h2 class="text-2xl md:text-3xl font-extrabold text-white">Etapas 1, 2 e 3: Captura, Detecção e Recorte</h2>
+                <p class="text-sm text-slate-400">Da imagem bruta na via pública ao recorte da bounding box</p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="glass-card p-4 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-blue-400">ESTÁGIO 1</span>
-                    <h4 class="text-sm font-bold text-white mt-1">Detecção YOLO de Placas</h4>
-                    <p class="text-xs text-slate-400 mt-1">Localização e recorte preciso da bounding box da placa veicular.</p>
+                <div class="glass-card p-2 rounded-xl flex flex-col items-center">
+                    <img src="etapas_pipeline/etapa_1_imagem_original.jpg" class="h-44 w-full rounded-lg object-contain">
+                    <div class="p-2 text-center">
+                        <span class="text-xs font-bold text-blue-400">1. IMAGEM ORIGINAL</span>
+                        <p class="text-[11px] text-slate-400 mt-1">Foto bruta em ângulo real de tráfego.</p>
+                    </div>
                 </div>
-                <div class="glass-card p-4 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-emerald-400">ESTÁGIO 2</span>
-                    <h4 class="text-sm font-bold text-white mt-1">Deskew Hough (Rotação)</h4>
-                    <p class="text-xs text-slate-400 mt-1">Correção trigonométrica do ângulo de inclinação para 0.0° perfeito.</p>
+                <div class="glass-card p-2 rounded-xl flex flex-col items-center">
+                    <img src="etapas_pipeline/etapa_2_deteccao_yolo1.jpg" class="h-44 w-full rounded-lg object-contain">
+                    <div class="p-2 text-center">
+                        <span class="text-xs font-bold text-emerald-400">2. DETECÇÃO YOLO 1</span>
+                        <p class="text-[11px] text-slate-400 mt-1">Bounding Box delimitada com >95% de confiança.</p>
+                    </div>
                 </div>
-                <div class="glass-card p-4 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-purple-400">ESTÁGIO 3</span>
-                    <h4 class="text-sm font-bold text-white mt-1">Multicontraste (4 Variantes)</h4>
-                    <p class="text-xs text-slate-400 mt-1">Corte da tarja azul e geração de imagens em Normal, CLAHE, Otsu e Adaptativo.</p>
-                </div>
-                <div class="glass-card p-4 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-amber-400">ESTÁGIO 4</span>
-                    <h4 class="text-sm font-bold text-white mt-1">Consenso Híbrido (YOLO+OCR)</h4>
-                    <p class="text-xs text-slate-400 mt-1">Votação por confiança caractere a caractere com redundância mútua.</p>
-                </div>
-                <div class="glass-card p-4 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-indigo-400">ESTÁGIO 5</span>
-                    <h4 class="text-sm font-bold text-white mt-1">Desambiguação FE-Schrift</h4>
-                    <p class="text-xs text-slate-400 mt-1">Validação sintática posicional das 7 classes (Mercosul e Cinza).</p>
-                </div>
-                <div class="glass-card p-4 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-red-400">ESTÁGIO 6</span>
-                    <h4 class="text-sm font-bold text-white mt-1">Consulta Policial & Web</h4>
-                    <p class="text-xs text-slate-400 mt-1">Busca instantânea no SQLite de veículos roubados e exibição no FastAPI.</p>
+                <div class="glass-card p-2 rounded-xl flex flex-col items-center">
+                    <img src="etapas_pipeline/etapa_3_crop_bruto_inclinado.jpg" class="h-44 w-full rounded-lg object-contain">
+                    <div class="p-2 text-center">
+                        <span class="text-xs font-bold text-amber-400">3. CROP BRUTO</span>
+                        <p class="text-[11px] text-slate-400 mt-1">Placa isolada ainda inclinada e com a tarja azul.</p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- SLIDE 4: YOLO 1 TREINAMENTO -->
+        <!-- SLIDE 5: ETAPA 4 DESKEW HOUGH -->
         <div class="slide flex-col justify-center space-y-4 w-full">
             <div>
-                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 3</span>
+                <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Capítulo 4</span>
+                <h2 class="text-2xl md:text-3xl font-extrabold text-white">Etapa 4: Retificação Geométrica (Deskew)</h2>
+                <p class="text-sm text-slate-400">Correção trigonométrica automática de rotação (Ganho: <strong class="text-emerald-400">+23,0%</strong>)</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                <div class="glass-card p-3 rounded-xl">
+                    <span class="text-xs font-bold text-amber-400">ANTES: Placa Inclinada (+11.6°)</span>
+                    <img src="etapas_pipeline/etapa_3_crop_bruto_inclinado.jpg" class="h-40 w-full rounded-lg object-contain mt-2">
+                </div>
+                <div class="glass-card p-3 rounded-xl">
+                    <span class="text-xs font-bold text-emerald-400">DEPOIS: Placa Nivelada (0.0° Horizontal)</span>
+                    <img src="etapas_pipeline/etapa_4_retificacao_deskew.jpg" class="h-40 w-full rounded-lg object-contain mt-2">
+                </div>
+            </div>
+            <div class="glass-card p-3 rounded-xl text-xs text-slate-300">
+                A transformada de Hough identifica as bordas horizontais da placa e a matriz afim desentorta a imagem antes da entrada no OCR.
+            </div>
+        </div>
+
+        <!-- SLIDE 6: ETAPAS 5 E 6 MULTICONTRASTE -->
+        <div class="slide flex-col justify-center space-y-4 w-full">
+            <div>
+                <span class="text-xs font-bold text-purple-400 uppercase tracking-widest">Capítulo 5</span>
+                <h2 class="text-2xl md:text-3xl font-extrabold text-white">Etapas 5 e 6: Corte da Tarja e 4 Filtros Concorrentes</h2>
+                <p class="text-sm text-slate-400">Eliminação de interferência do 'BRASIL' e robustez contra sombras e faróis (Ganho: <strong class="text-emerald-400">+24,0%</strong>)</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                <div class="glass-card p-3 rounded-xl">
+                    <span class="text-xs font-bold text-purple-400">5. ISOLAMENTO DO MIOLO (SEM TARJA)</span>
+                    <img src="etapas_pipeline/etapa_5_corte_tarja_brasil.jpg" class="h-44 w-full rounded-lg object-contain mt-2">
+                </div>
+                <div class="glass-card p-3 rounded-xl">
+                    <span class="text-xs font-bold text-cyan-400">6. MULTICONTRASTE (4 FILTROS)</span>
+                    <img src="etapas_pipeline/etapa_6_multicontraste_4filtros.jpg" class="h-44 w-full rounded-lg object-contain mt-2">
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 7: ETAPAS 7 E 8 CARACTERES E RESULTADO -->
+        <div class="slide flex-col justify-center space-y-4 w-full">
+            <div>
+                <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Capítulo 6</span>
+                <h2 class="text-2xl md:text-3xl font-extrabold text-white">Etapas 7 e 8: YOLO de Caracteres e Consenso Final</h2>
+                <p class="text-sm text-slate-400">Localização das caixas delimitadoras de cada letra e consulta na base de veículos roubados</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                <div class="glass-card p-3 rounded-xl">
+                    <span class="text-xs font-bold text-purple-400">7. YOLO 2: CAIXAS DOS CARACTERES</span>
+                    <img src="etapas_pipeline/etapa_7_yolo2_deteccao_caracteres.jpg" class="h-44 w-full rounded-lg object-contain mt-2">
+                </div>
+                <div class="glass-card p-3 rounded-xl">
+                    <span class="text-xs font-bold text-emerald-400">8. RESULTADO ANOTADO & STATUS POLICIAL</span>
+                    <img src="etapas_pipeline/etapa_8_consenso_e_consulta_policial.jpg" class="h-44 w-full rounded-lg object-contain mt-2">
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 8: YOLO 1 TREINAMENTO -->
+        <div class="slide flex-col justify-center space-y-4 w-full">
+            <div>
+                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 7</span>
                 <h2 class="text-2xl md:text-3xl font-extrabold text-white">YOLO 1: Detector de Placas Veiculares</h2>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
@@ -695,10 +767,10 @@ def criar_apresentacao_html():
             </div>
         </div>
 
-        <!-- SLIDE 5: YOLO 2 TREINAMENTO -->
+        <!-- SLIDE 9: YOLO 2 TREINAMENTO -->
         <div class="slide flex-col justify-center space-y-4 w-full">
             <div>
-                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 4</span>
+                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 8</span>
                 <h2 class="text-2xl md:text-3xl font-extrabold text-white">YOLO 2: Detector de Caracteres (Roboflow)</h2>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
@@ -711,10 +783,10 @@ def criar_apresentacao_html():
             </div>
         </div>
 
-        <!-- SLIDE 6: O CHOQUE DE REALIDADE -->
+        <!-- SLIDE 10: O CHOQUE DE REALIDADE -->
         <div class="slide flex-col justify-center space-y-6 w-full">
             <div>
-                <span class="text-xs font-bold text-red-400 uppercase tracking-widest">Capítulo 5</span>
+                <span class="text-xs font-bold text-red-400 uppercase tracking-widest">Capítulo 9</span>
                 <h2 class="text-3xl font-extrabold text-white mt-1">O Choque de Realidade: A Falha em Cascata</h2>
                 <p class="text-sm text-slate-400">Por que 99,3% de mAP no Roboflow se tornaram apenas 7,0% em fotos reais de rua?</p>
             </div>
@@ -744,10 +816,10 @@ def criar_apresentacao_html():
             </div>
         </div>
 
-        <!-- SLIDE 7: BATALHA DIRETA -->
+        <!-- SLIDE 11: BATALHA DIRETA -->
         <div class="slide flex-col justify-center space-y-4 w-full">
             <div>
-                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 6</span>
+                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 10</span>
                 <h2 class="text-2xl md:text-3xl font-extrabold text-white">Batalha Direta: YOLO vs EasyOCR vs Híbrido</h2>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
@@ -771,140 +843,49 @@ def criar_apresentacao_html():
             </div>
         </div>
 
-        <!-- SLIDE 8: SOLUÇÃO 1 - DESKEW -->
+        <!-- SLIDE 12: EVOLUÇÃO E GANHO INCREMENTAL -->
         <div class="slide flex-col justify-center space-y-4 w-full">
             <div>
-                <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Melhoria Técnica 1</span>
-                <h2 class="text-3xl font-extrabold text-white">Retificação Geométrica: Deskew Hough</h2>
-                <p class="text-sm text-slate-400">Ganho Absoluto: <strong class="text-emerald-400">+23,0% de Acurácia</strong></p>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="glass-card p-5 rounded-xl border border-slate-700 space-y-3">
-                    <h3 class="text-base font-bold text-blue-400">Como funciona o Algoritmo:</h3>
-                    <ul class="text-xs text-slate-300 space-y-2">
-                        <li>• Detecção de bordas via filtro Canny (50, 150).</li>
-                        <li>• Detecção probabilística de linhas horizontais com HoughLinesP.</li>
-                        <li>• Cálculo trigonométrico do ângulo angular médio de -35° a +35°.</li>
-                        <li>• Rotação por interpolação bicúbica via getRotationMatrix2D e warpAffine.</li>
-                    </ul>
-                </div>
-                <div class="glass-card p-5 rounded-xl border border-slate-700 flex flex-col justify-center items-center text-center">
-                    <div class="text-4xl font-extrabold text-emerald-400">15% ➔ 38%</div>
-                    <p class="text-xs text-slate-400 mt-2">Salto de precisão ao forçar todas as placas a entrarem perfeitamente horizontais no motor de reconhecimento.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- SLIDE 9: SOLUÇÃO 2 - MULTICONTRASTE -->
-        <div class="slide flex-col justify-center space-y-4 w-full">
-            <div>
-                <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Melhoria Técnica 2</span>
-                <h2 class="text-3xl font-extrabold text-white">Multicontraste & Eliminação da Tarja 'BRASIL'</h2>
-                <p class="text-sm text-slate-400">Ganho Absoluto: <strong class="text-emerald-400">+24,0% de Acurácia</strong></p>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div class="glass-card p-3 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-blue-400">VARIANTE 1</span>
-                    <h4 class="text-xs font-bold text-white mt-1">Normal HD</h4>
-                    <p class="text-[11px] text-slate-400 mt-1">Miolo recortado sem a tarja azul e upscaling Lanczos4.</p>
-                </div>
-                <div class="glass-card p-3 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-emerald-400">VARIANTE 2</span>
-                    <h4 class="text-xs font-bold text-white mt-1">Realce CLAHE</h4>
-                    <p class="text-[11px] text-slate-400 mt-1">Equalização de histograma + sharpening para bordas suaves.</p>
-                </div>
-                <div class="glass-card p-3 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-purple-400">VARIANTE 3</span>
-                    <h4 class="text-xs font-bold text-white mt-1">Binarização Otsu</h4>
-                    <p class="text-[11px] text-slate-400 mt-1">Segmentação P&B ideal para placas com sombra forte.</p>
-                </div>
-                <div class="glass-card p-3 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-amber-400">VARIANTE 4</span>
-                    <h4 class="text-xs font-bold text-white mt-1">Adaptativo Local</h4>
-                    <p class="text-[11px] text-slate-400 mt-1">Limiarização adaptativa para iluminação não uniforme e farol.</p>
-                </div>
-            </div>
-            <div class="glass-card p-3 rounded-xl text-center text-xs text-slate-300">
-                Acurácia subiu de <strong>38,0% para 62,0%</strong> em virtude da imunidade contra variações de luz.
-            </div>
-        </div>
-
-        <!-- SLIDE 10: SOLUÇÃO 3 - DESAMBIGUAÇÃO -->
-        <div class="slide flex-col justify-center space-y-4 w-full">
-            <div>
-                <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Melhoria Técnica 3</span>
-                <h2 class="text-3xl font-extrabold text-white">Desambiguação Morfológica FE-Schrift</h2>
-                <p class="text-sm text-slate-400">Ganho Absoluto: <strong class="text-emerald-400">+16,0% de Acurácia</strong></p>
-            </div>
-            <div class="glass-card p-5 rounded-xl border border-slate-700 space-y-3">
-                <h3 class="text-sm font-bold text-white">Regras Posicionais Estritas Aplicadas:</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
-                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-                        <strong class="text-blue-400">Posição 1, 2 e 3</strong>
-                        <p class="text-slate-300 mt-1">LETRAS obrigatórias.<br>Converte '0'➔'O', '8'➔'B', '5'➔'S'.</p>
-                    </div>
-                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-                        <strong class="text-purple-400">Posição 4</strong>
-                        <p class="text-slate-300 mt-1">DÍGITO obrigatório.<br>Converte 'O'➔'0', 'B'➔'8', 'S'➔'5'.</p>
-                    </div>
-                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-                        <strong class="text-emerald-400">Posição 5</strong>
-                        <p class="text-slate-300 mt-1">Mercosul = LETRA.<br>Antiga Cinza = DÍGITO.</p>
-                    </div>
-                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-                        <strong class="text-amber-400">Posição 6 e 7</strong>
-                        <p class="text-slate-300 mt-1">DÍGITOS obrigatórios.<br>Converte 'I'➔'1', 'O'➔'0', 'Z'➔'2'.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="glass-card p-3 rounded-xl text-center text-xs text-slate-300">
-                Acurácia subiu de <strong>62,0% para 78,0%</strong> corrigindo toda a matriz de confusão da tipografia Mercosul.
-            </div>
-        </div>
-
-        <!-- SLIDE 11: A VIRADA DE CHAVE -->
-        <div class="slide flex-col justify-center space-y-4 w-full">
-            <div>
-                <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Capítulo 7</span>
-                <h2 class="text-2xl md:text-3xl font-extrabold text-white">A Virada de Chave: O Pipeline Híbrido</h2>
+                <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Capítulo 11</span>
+                <h2 class="text-2xl md:text-3xl font-extrabold text-white">Evolução Incremental e Ganhos Marginais</h2>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                 <div class="glass-card p-2 rounded-xl flex items-center justify-center">
                     <img src="../relatorios_benchmark/grafico_2_evolucao_etapas.png" class="max-h-72 rounded-lg object-contain shadow-lg">
                 </div>
-                <div class="space-y-3">
-                    <div class="glass-card p-4 rounded-xl border border-slate-700">
-                        <h4 class="text-sm font-bold text-emerald-400">Consenso Votado por Caractere</h4>
-                        <p class="text-xs text-slate-300 mt-1">Onde o OCR hesita, o YOLO decide a classe pela caixa delimitadora; onde o YOLO hesita por colagem de letras ('M' e 'H'), o OCR refina a morfologia.</p>
-                    </div>
-                    <div class="glass-card p-4 rounded-xl border border-slate-700">
-                        <h4 class="text-sm font-bold text-blue-400">Resultado Oficial Consolidado</h4>
-                        <p class="text-xs text-slate-300 mt-1"><strong>95,8% de acerto exato</strong> nas placas principais e <strong>89,41% de acerto geral</strong> em todas as 85 placas do dataset.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- SLIDE 12: IMPACTO POR TÉCNICA -->
-        <div class="slide flex-col justify-center space-y-4 w-full">
-            <div>
-                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 8</span>
-                <h2 class="text-2xl md:text-3xl font-extrabold text-white">Ganhos Incrementais & Qualidade de Leitura</h2>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                 <div class="glass-card p-2 rounded-xl flex items-center justify-center">
                     <img src="../relatorios_benchmark/grafico_3_ganho_por_metodo.png" class="max-h-72 rounded-lg object-contain shadow-lg">
                 </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 13: QUALIDADE DE LEITURA -->
+        <div class="slide flex-col justify-center space-y-4 w-full">
+            <div>
+                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 12</span>
+                <h2 class="text-2xl md:text-3xl font-extrabold text-white">Distribuição da Qualidade de Leitura</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                 <div class="glass-card p-2 rounded-xl flex items-center justify-center">
                     <img src="../relatorios_benchmark/grafico_4_distribuicao_qualidade_leitura.png" class="max-h-72 rounded-lg object-contain shadow-lg">
+                </div>
+                <div class="space-y-3">
+                    <div class="glass-card p-4 rounded-xl border border-slate-700">
+                        <h4 class="text-sm font-bold text-emerald-400">Zero Erros Parciais</h4>
+                        <p class="text-xs text-slate-300 mt-1">A taxa de placas com apenas 1 ou 2 caracteres divergentes foi zerada graças à desambiguação sintática FE-Schrift.</p>
+                    </div>
+                    <div class="glass-card p-4 rounded-xl border border-slate-700">
+                        <h4 class="text-sm font-bold text-blue-400">95,8% de Confiabilidade</h4>
+                        <p class="text-xs text-slate-300 mt-1">Precisão exata garantida em situações diurnas, noturnas e sob ângulos diagonais reais.</p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- SLIDE 13: REENGENHARIA FASTAPI -->
+        <!-- SLIDE 14: REENGENHARIA FASTAPI -->
         <div class="slide flex-col justify-center space-y-4 w-full">
             <div>
-                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 9</span>
+                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 13</span>
                 <h2 class="text-2xl md:text-3xl font-extrabold text-white">Migração de Streamlit para FastAPI + Tailwind</h2>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -922,7 +903,7 @@ def criar_apresentacao_html():
             </div>
         </div>
 
-        <!-- SLIDE 14: DASHBOARD EXECUTIVO -->
+        <!-- SLIDE 15: DASHBOARD EXECUTIVO -->
         <div class="slide flex-col justify-center space-y-4 w-full">
             <div>
                 <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Conclusão</span>
@@ -1009,7 +990,7 @@ def criar_apresentacao_html():
 
 
 if __name__ == "__main__":
-    print("Iniciando geração das apresentações de slides (PPTX e HTML)...")
+    print("Iniciando geração das apresentações de slides (PPTX e HTML) com imagens de todas as etapas...")
     criar_apresentacao_pptx()
     criar_apresentacao_html()
     print("\n✅ Apresentações concluídas na pasta 'apresentacao/'!")

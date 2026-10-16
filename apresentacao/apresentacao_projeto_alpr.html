@@ -7,407 +7,469 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #0B0F19; color: #F8FAFC; }
-        .slide { display: none; min-height: 85vh; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #070B14; color: #F8FAFC; overflow-x: hidden; }
+        .slide { display: none; min-height: 84vh; animation: fadeIn 0.25s ease-in-out; }
         .slide.active { display: flex; }
-        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .mercosul-border { border-top: 14px solid #003399; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .glass-card { 
+            background: rgba(15, 23, 42, 0.75); 
+            backdrop-filter: blur(16px); 
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+        }
+        /* Imagens em destaque para apresentação */
+        .img-hero {
+            max-height: 68vh;
+            width: auto;
+            object-fit: contain;
+            border-radius: 0.75rem;
+            cursor: zoom-in;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .img-hero:hover {
+            transform: scale(1.015);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+        }
+        .img-duo {
+            max-height: 58vh;
+            width: 100%;
+            object-fit: contain;
+            border-radius: 0.75rem;
+            cursor: zoom-in;
+            transition: transform 0.2s ease;
+        }
+        .img-duo:hover {
+            transform: scale(1.02);
+        }
+        /* Modal Lightbox */
+        #lightboxModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(3, 7, 18, 0.95);
+            backdrop-filter: blur(12px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        #lightboxModal.open {
+            display: flex;
+        }
+        #lightboxImg {
+            max-height: 94vh;
+            max-width: 95vw;
+            object-fit: contain;
+            border-radius: 0.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+        }
     </style>
 </head>
 <body class="flex flex-col justify-between min-h-screen select-none">
 
+    <!-- MODAL DE ZOOM (LIGHTBOX PARA EXIBIR QUALQUER GRÁFICO EM FULLSCREEN) -->
+    <div id="lightboxModal" onclick="fecharZoom()">
+        <button class="absolute top-6 right-8 text-white/80 hover:text-white text-3xl font-bold transition">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <span class="absolute bottom-4 text-xs text-slate-400 font-mono">Clique em qualquer lugar ou pressione ESC para fechar</span>
+        <img id="lightboxImg" src="" alt="Zoom do Gráfico" onclick="event.stopPropagation()">
+    </div>
+
     <!-- BARRA SUPERIOR -->
-    <header class="w-full bg-slate-900/80 border-b border-slate-800 px-8 py-4 flex justify-between items-center z-50">
+    <header class="w-full bg-slate-900/90 border-b border-slate-800 px-8 py-3 flex justify-between items-center z-50">
         <div class="flex items-center space-x-3">
             <span class="bg-blue-600 text-white font-black text-xs px-2.5 py-1 rounded tracking-widest uppercase">ALPR PRO</span>
-            <span class="text-sm font-semibold text-slate-300">Sistema de Identificação de Placas e Consulta Policial</span>
+            <span class="text-sm font-semibold text-slate-200">Sistema de Identificação de Placas e Consulta Policial</span>
         </div>
         <div class="flex items-center space-x-4">
-            <span id="slideIndicator" class="text-xs font-mono font-bold bg-slate-800 text-blue-400 px-3 py-1 rounded-full border border-slate-700">Slide 1 / 14</span>
-            <button onclick="toggleFullScreen()" class="text-slate-400 hover:text-white text-sm transition" title="Tela Cheia"><i class="fa-solid fa-expand"></i></button>
+            <span id="slideIndicator" class="text-xs font-mono font-bold bg-slate-800 text-blue-400 px-3.5 py-1.5 rounded-full border border-slate-700 shadow-inner">
+                Slide 1 / 15
+            </span>
+            <button onclick="toggleFullScreen()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs transition border border-slate-700" title="Alternar Tela Cheia (F11)">
+                <i class="fa-solid fa-expand mr-1.5"></i> Tela Cheia
+            </button>
         </div>
     </header>
 
-    <!-- CONTEÚDO DOS SLIDES -->
-    <main class="flex-1 flex items-center justify-center p-6 max-w-7xl mx-auto w-full">
+    <!-- CONTEÚDO DOS SLIDES (ÁREA DE APRESENTAÇÃO MAXIMIZADA) -->
+    <main class="flex-1 flex items-center justify-center p-4 md:p-6 max-w-[96rem] mx-auto w-full">
 
         <!-- SLIDE 1: CAPA -->
         <div class="slide active flex-col justify-center items-start space-y-6 w-full py-8">
-            <div class="inline-flex items-center space-x-2 bg-blue-500/10 border border-blue-500/30 px-3 py-1.5 rounded-full text-blue-400 text-xs font-semibold tracking-wide">
+            <div class="inline-flex items-center space-x-2 bg-blue-500/10 border border-blue-500/30 px-3.5 py-1.5 rounded-full text-blue-400 text-xs font-semibold tracking-wide">
                 <i class="fa-solid fa-shield-halved"></i>
                 <span>VISÃO COMPUTACIONAL & INTELIGÊNCIA ARTIFICIAL</span>
             </div>
-            <h1 class="text-4xl md:text-5xl font-extrabold text-white leading-tight tracking-tight">
-                SISTEMA INTELIGENTE DE <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-emerald-400">IDENTIFICAÇÃO DE PLACAS (ALPR)</span>
+            <h1 class="text-4xl md:text-6xl font-black text-white leading-tight tracking-tight">
+                SISTEMA INTELIGENTE DE <br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-emerald-400">IDENTIFICAÇÃO DE PLACAS (ALPR)</span>
             </h1>
-            <p class="text-lg text-slate-400 max-w-3xl">
-                Do Treinamento em Deep Learning ao Pipeline Híbrido de Alto Desempenho (YOLO + OCR), Tratamento Morfológico e Consulta em Tempo Real de Veículos Roubados.
+            <p class="text-lg md:text-xl text-slate-300 max-w-4xl leading-relaxed">
+                Do Treinamento em Deep Learning ao Pipeline Híbrido de Alto Desempenho (YOLO + EasyOCR), Retificação Angular, Desambiguação Morfológica e Consulta Policial em Tempo Real.
             </p>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-4xl pt-4">
-                <div class="glass-card p-4 rounded-xl border border-slate-700/50">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 w-full max-w-5xl pt-4">
+                <div class="glass-card p-5 rounded-2xl border border-slate-700/60 shadow-lg">
                     <span class="text-xs font-bold text-blue-400 tracking-wider uppercase">Equipe do Projeto</span>
-                    <p class="text-sm font-medium text-slate-200 mt-1">Caio Felipe G. Lopes • Davi Alves Mares • Carlos Eduardo Pena Fiel Menon de Freitas</p>
+                    <p class="text-base font-semibold text-slate-100 mt-1.5">Caio Felipe G. Lopes • Davi Alves Mares • Carlos Eduardo Pena Fiel Menon de Freitas</p>
                 </div>
-                <div class="glass-card p-4 rounded-xl border border-slate-700/50">
-                    <span class="text-xs font-bold text-emerald-400 tracking-wider uppercase">Stack Tecnológico</span>
-                    <p class="text-sm font-medium text-slate-200 mt-1">YOLOv8/11 • Roboflow Universe • EasyOCR • OpenCV • FastAPI • SQLite</p>
+                <div class="glass-card p-5 rounded-2xl border border-slate-700/60 shadow-lg">
+                    <span class="text-xs font-bold text-emerald-400 tracking-wider uppercase">Foco da Apresentação</span>
+                    <p class="text-base font-semibold text-slate-100 mt-1.5">Gráficos de Treinamento, Falhas do Mundo Real, Engenharia de Soluções e Benchmark</p>
                 </div>
             </div>
+            <p class="text-xs text-slate-500 mt-2">Dica: Clique em qualquer gráfico durante a apresentação para vê-lo em tamanho gigante (Fullscreen Zoom).</p>
         </div>
 
-        <!-- SLIDE 2: O DESAFIO REAL -->
+        <!-- SLIDE 2: O DESAFIO DO MUNDO REAL -->
         <div class="slide flex-col justify-center space-y-6 w-full">
             <div>
                 <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 1</span>
-                <h2 class="text-3xl font-extrabold text-white mt-1">O Desafio Real da Leitura de Placas</h2>
-                <p class="text-sm text-slate-400">Por que modelos convencionais de visão computacional falham nas ruas?</p>
+                <h2 class="text-3xl md:text-4xl font-extrabold text-white mt-1">O Desafio Real da Identificação Veicular</h2>
+                <p class="text-base text-slate-400 mt-1">Por que redes neurais puras falham em fotos reais de tráfego?</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="glass-card p-5 rounded-xl border-l-4 border-amber-500">
-                    <h3 class="text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-compass-drafting text-amber-400"></i> Rotação & Distorção Afim</h3>
-                    <p class="text-sm text-slate-300 mt-2">Câmeras públicas capturam placas com rotações de -35° a +35°. O desalinhamento destrói a ordem horizontal de leitura.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="glass-card p-6 rounded-2xl border-l-4 border-amber-500 shadow-xl space-y-2">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fa-solid fa-compass-drafting text-amber-400"></i> Rotação & Distorção Angular</h3>
+                    <p class="text-sm text-slate-300 leading-relaxed">Câmeras de vias públicas capturam veículos inclinados (-35° a +35°). Essa deformação afim destrói a ordem horizontal de leitura dos caracteres.</p>
                 </div>
-                <div class="glass-card p-5 rounded-xl border-l-4 border-blue-500">
-                    <h3 class="text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-sun text-blue-400"></i> Iluminação Adversária</h3>
-                    <p class="text-sm text-slate-300 mt-2">Faróis de xênon, reflexos no metal da placa, sombras duras e penumbra estouram o histograma e cegam o detector.</p>
+                <div class="glass-card p-6 rounded-2xl border-l-4 border-blue-500 shadow-xl space-y-2">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fa-solid fa-sun text-blue-400"></i> Iluminação Adversária</h3>
+                    <p class="text-sm text-slate-300 leading-relaxed">Faróis acesos, reflexos no metal da placa, sombras duras e penumbra noturna estouram o histograma e cegam os modelos de leitura.</p>
                 </div>
-                <div class="glass-card p-5 rounded-xl border-l-4 border-purple-500">
-                    <h3 class="text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-font text-purple-400"></i> Tipografia Antifraude FE-Schrift</h3>
-                    <p class="text-sm text-slate-300 mt-2">A fonte do Mercosul possui cortes deliberados que confundem OCRs genéricos entre 'Q/O', '8/B', '5/S' e '1/I'.</p>
+                <div class="glass-card p-6 rounded-2xl border-l-4 border-purple-500 shadow-xl space-y-2">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fa-solid fa-font text-purple-400"></i> Tipografia Antifraude FE-Schrift</h3>
+                    <p class="text-sm text-slate-300 leading-relaxed">A fonte do Mercosul foi desenhada especificamente para impedir leitura simples, gerando confusões como 'Q/O', '8/B', '5/S' e '1/I'.</p>
                 </div>
-                <div class="glass-card p-5 rounded-xl border-l-4 border-red-500">
-                    <h3 class="text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-flag text-red-400"></i> Poluição da Faixa 'BRASIL'</h3>
-                    <p class="text-sm text-slate-300 mt-2">A tarja azul superior gera falsos caracteres iniciais (ex: leitura 'BRA5I30' ao invés da placa real 'QCU5C70').</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- SLIDE 3: ARQUITETURA GLOBAL -->
-        <div class="slide flex-col justify-center space-y-6 w-full">
-            <div>
-                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 2</span>
-                <h2 class="text-3xl font-extrabold text-white mt-1">Arquitetura Multicamadas do Pipeline</h2>
-                <p class="text-sm text-slate-400">Fluxo completo de processamento em 6 estágios integrados</p>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="glass-card p-4 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-blue-400">ESTÁGIO 1</span>
-                    <h4 class="text-sm font-bold text-white mt-1">Detecção YOLO de Placas</h4>
-                    <p class="text-xs text-slate-400 mt-1">Localização e recorte preciso da bounding box da placa veicular.</p>
-                </div>
-                <div class="glass-card p-4 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-emerald-400">ESTÁGIO 2</span>
-                    <h4 class="text-sm font-bold text-white mt-1">Deskew Hough (Rotação)</h4>
-                    <p class="text-xs text-slate-400 mt-1">Correção trigonométrica do ângulo de inclinação para 0.0° perfeito.</p>
-                </div>
-                <div class="glass-card p-4 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-purple-400">ESTÁGIO 3</span>
-                    <h4 class="text-sm font-bold text-white mt-1">Multicontraste (4 Variantes)</h4>
-                    <p class="text-xs text-slate-400 mt-1">Corte da tarja azul e geração de imagens em Normal, CLAHE, Otsu e Adaptativo.</p>
-                </div>
-                <div class="glass-card p-4 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-amber-400">ESTÁGIO 4</span>
-                    <h4 class="text-sm font-bold text-white mt-1">Consenso Híbrido (YOLO+OCR)</h4>
-                    <p class="text-xs text-slate-400 mt-1">Votação por confiança caractere a caractere com redundância mútua.</p>
-                </div>
-                <div class="glass-card p-4 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-indigo-400">ESTÁGIO 5</span>
-                    <h4 class="text-sm font-bold text-white mt-1">Desambiguação FE-Schrift</h4>
-                    <p class="text-xs text-slate-400 mt-1">Validação sintática posicional das 7 classes (Mercosul e Cinza).</p>
-                </div>
-                <div class="glass-card p-4 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-red-400">ESTÁGIO 6</span>
-                    <h4 class="text-sm font-bold text-white mt-1">Consulta Policial & Web</h4>
-                    <p class="text-xs text-slate-400 mt-1">Busca instantânea no SQLite de veículos roubados e exibição no FastAPI.</p>
+                <div class="glass-card p-6 rounded-2xl border-l-4 border-red-500 shadow-xl space-y-2">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fa-solid fa-flag text-red-400"></i> Poluição da Tarja 'BRASIL'</h3>
+                    <p class="text-sm text-slate-300 leading-relaxed">A tarja azul superior gera falsos caracteres iniciais (ex: leitura 'BRA5I30' no lugar da placa real 'QCU5C70').</p>
                 </div>
             </div>
         </div>
 
-        <!-- SLIDE 4: YOLO 1 TREINAMENTO -->
-        <div class="slide flex-col justify-center space-y-4 w-full">
+        <!-- SLIDE 3: O PIPELINE EM AÇÃO (INFOGRÁFICO GIGANTE) -->
+        <div class="slide flex-col justify-center space-y-3 w-full">
+            <div class="flex justify-between items-end">
+                <div>
+                    <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Capítulo 2</span>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-white">O Pipeline em Ação: Visão Panorâmica</h2>
+                    <p class="text-xs md:text-sm text-slate-400">A transformação visual da imagem em cada estágio, com legendas do processo</p>
+                </div>
+                <span class="text-xs text-slate-400 bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700">Clique na imagem para zoom</span>
+            </div>
+            <div class="glass-card p-2 rounded-2xl flex items-center justify-center overflow-hidden shadow-2xl">
+                <img src="etapas_pipeline/painel_infografico_pipeline_completo.jpg" onclick="abrirZoom(this.src)" class="img-hero w-full max-h-[72vh] object-contain">
+            </div>
+        </div>
+
+        <!-- SLIDE 4: ETAPAS 1, 2 E 3 VISUAL (IMAGENS AMPLIADAS) -->
+        <div class="slide flex-col justify-center space-y-3 w-full">
             <div>
                 <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 3</span>
-                <h2 class="text-2xl md:text-3xl font-extrabold text-white">YOLO 1: Detector de Placas Veiculares</h2>
+                <h2 class="text-2xl md:text-3xl font-extrabold text-white">Etapas 1, 2 e 3: Captura, Detecção YOLO e Recorte Bruto</h2>
+                <p class="text-xs md:text-sm text-slate-400">Do veículo na via pública ao isolamento da placa (note a inclinação e a presença da tarja azul)</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                <div class="space-y-3 text-sm text-slate-300">
-                    <div class="glass-card p-4 rounded-xl">
-                        <span class="text-xs font-bold text-blue-400 uppercase">Dataset & Configuração</span>
-                        <p class="mt-1">Treinado com o dataset Open Images V7 + placas reais brasileiras. Modelo YOLOv8 Nano com resolução de 640px e batch size 16.</p>
-                    </div>
-                    <div class="glass-card p-4 rounded-xl">
-                        <span class="text-xs font-bold text-emerald-400 uppercase">Métricas Alcançadas</span>
-                        <p class="mt-1">Box mAP@50 superior a 95%, garantindo recorte milimétrico da placa em ângulos frontais e traseiros.</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="glass-card p-3 rounded-2xl flex flex-col items-center">
+                    <img src="etapas_pipeline/etapa_1_imagem_original.jpg" onclick="abrirZoom(this.src)" class="h-64 md:h-72 w-full object-contain rounded-xl cursor-zoom-in">
+                    <div class="p-3 text-center">
+                        <span class="text-xs font-bold text-blue-400 uppercase tracking-wider">1. IMAGEM ORIGINAL</span>
+                        <p class="text-xs text-slate-300 mt-1">Cena real de trânsito sob condições adversas.</p>
                     </div>
                 </div>
-                <div class="glass-card p-2 rounded-xl flex items-center justify-center">
-                    <img src="../data/resultados treinamento modelo de identificação de placa/results.png" onerror="this.src='../relatorios_benchmark/benchmark_grafico_precisao.png'" class="max-h-72 rounded-lg object-contain shadow-lg">
+                <div class="glass-card p-3 rounded-2xl flex flex-col items-center">
+                    <img src="etapas_pipeline/etapa_2_deteccao_yolo1.jpg" onclick="abrirZoom(this.src)" class="h-64 md:h-72 w-full object-contain rounded-xl cursor-zoom-in">
+                    <div class="p-3 text-center">
+                        <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">2. DETECÇÃO YOLO 1</span>
+                        <p class="text-xs text-slate-300 mt-1">Bounding Box delimitada com >95% de confiança.</p>
+                    </div>
+                </div>
+                <div class="glass-card p-3 rounded-2xl flex flex-col items-center">
+                    <img src="etapas_pipeline/etapa_3_crop_bruto_inclinado.jpg" onclick="abrirZoom(this.src)" class="h-64 md:h-72 w-full object-contain rounded-xl cursor-zoom-in">
+                    <div class="p-3 text-center">
+                        <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">3. CROP BRUTO</span>
+                        <p class="text-xs text-slate-300 mt-1">Placa isolada ainda inclinada e poluída pela tarja.</p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- SLIDE 5: YOLO 2 TREINAMENTO -->
-        <div class="slide flex-col justify-center space-y-4 w-full">
+        <!-- SLIDE 5: ETAPA 4 DESKEW HOUGH (COMPARATIVO GIGANTE) -->
+        <div class="slide flex-col justify-center space-y-3 w-full">
             <div>
-                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 4</span>
-                <h2 class="text-2xl md:text-3xl font-extrabold text-white">YOLO 2: Detector de Caracteres (Roboflow)</h2>
+                <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Capítulo 4</span>
+                <h2 class="text-2xl md:text-3xl font-extrabold text-white">Etapa 4: Retificação Geométrica (Deskew com Hough)</h2>
+                <p class="text-xs md:text-sm text-slate-400">Correção angular automática da inclinação da placa (Ganho Absoluto: <strong class="text-emerald-400">+23,0% na Acurácia</strong>)</p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                <div class="glass-card p-2 rounded-xl flex items-center justify-center">
-                    <img src="../data/resultados treinamento modelo de identificacao de caracteres yolo 2/metricas_roboflow_yolo2.png" class="max-h-72 rounded-lg object-contain shadow-lg">
+                <div class="glass-card p-4 rounded-2xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">ANTES: Inclinada (+11.6°)</span>
+                        <span class="text-[11px] text-slate-400">Quebra a ordem de leitura</span>
+                    </div>
+                    <img src="etapas_pipeline/etapa_3_crop_bruto_inclinado.jpg" onclick="abrirZoom(this.src)" class="img-duo max-h-[50vh] bg-black/40">
                 </div>
-                <div class="glass-card p-2 rounded-xl flex items-center justify-center">
-                    <img src="../data/resultados treinamento modelo de identificacao de caracteres yolo 2/results.png" class="max-h-72 rounded-lg object-contain shadow-lg">
+                <div class="glass-card p-4 rounded-2xl">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">DEPOIS: Nivelada (0.0° Horizontal)</span>
+                        <span class="text-[11px] text-emerald-400 font-semibold">Alinhamento Perfeito</span>
+                    </div>
+                    <img src="etapas_pipeline/etapa_4_retificacao_deskew.jpg" onclick="abrirZoom(this.src)" class="img-duo max-h-[50vh] bg-black/40">
+                </div>
+            </div>
+            <div class="glass-card p-3 rounded-xl text-xs text-slate-300">
+                💡 <strong>Como funciona:</strong> Bordas Canny + HoughLinesP identificam os segmentos lineares da borda da placa. A mediana trigonométrica calcula o ângulo e a matriz afim rotaciona a imagem para 0.0° perfeito.
+            </div>
+        </div>
+
+        <!-- SLIDE 6: ETAPAS 5 E 6 MULTICONTRASTE (IMAGENS GRANDES) -->
+        <div class="slide flex-col justify-center space-y-3 w-full">
+            <div>
+                <span class="text-xs font-bold text-purple-400 uppercase tracking-widest">Capítulo 5</span>
+                <h2 class="text-2xl md:text-3xl font-extrabold text-white">Etapas 5 e 6: Corte da Tarja e 4 Filtros Concorrentes</h2>
+                <p class="text-xs md:text-sm text-slate-400">Eliminação da palavra 'BRASIL' e robustez extrema contra sombras e reflexos (Ganho: <strong class="text-emerald-400">+24,0%</strong>)</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                <div class="glass-card p-4 rounded-2xl">
+                    <span class="text-xs font-bold text-purple-400 uppercase tracking-wider">5. ISOLAMENTO DO MIOLO DOS CARACTERES</span>
+                    <img src="etapas_pipeline/etapa_5_corte_tarja_brasil.jpg" onclick="abrirZoom(this.src)" class="img-duo max-h-[50vh] mt-2 bg-black/40">
+                    <p class="text-xs text-slate-400 mt-2">Corte dos 20% superiores para eliminar o falso 'BRA'.</p>
+                </div>
+                <div class="glass-card p-4 rounded-2xl">
+                    <span class="text-xs font-bold text-cyan-400 uppercase tracking-wider">6. MULTICONTRASTE (4 FILTROS CONCORRENTES)</span>
+                    <img src="etapas_pipeline/etapa_6_multicontraste_4filtros.jpg" onclick="abrirZoom(this.src)" class="img-duo max-h-[50vh] mt-2 bg-black/40">
+                    <p class="text-xs text-slate-400 mt-2">Normal, Realce CLAHE, Binarização Otsu e Adaptativo.</p>
                 </div>
             </div>
         </div>
 
-        <!-- SLIDE 6: O CHOQUE DE REALIDADE -->
+        <!-- SLIDE 7: ETAPAS 7 E 8 CARACTERES E RESULTADO (IMAGENS GRANDES) -->
+        <div class="slide flex-col justify-center space-y-3 w-full">
+            <div>
+                <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Capítulo 6</span>
+                <h2 class="text-2xl md:text-3xl font-extrabold text-white">Etapas 7 e 8: YOLO de Caracteres e Consenso Final</h2>
+                <p class="text-xs md:text-sm text-slate-400">Detecção individual dos 7 caracteres, votação por confiança e consulta instantânea no banco policial</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                <div class="glass-card p-4 rounded-2xl">
+                    <span class="text-xs font-bold text-purple-400 uppercase tracking-wider">7. DETECÇÃO YOLO 2: CAIXAS DELIMITADORAS</span>
+                    <img src="etapas_pipeline/etapa_7_yolo2_deteccao_caracteres.jpg" onclick="abrirZoom(this.src)" class="img-duo max-h-[50vh] mt-2 bg-black/40">
+                    <p class="text-xs text-slate-400 mt-2">Ordenação horizontal precisa dos caracteres individuais.</p>
+                </div>
+                <div class="glass-card p-4 rounded-2xl">
+                    <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">8. RESULTADO FINAL & CONSULTA POLICIAL</span>
+                    <img src="etapas_pipeline/etapa_8_consenso_e_consulta_policial.jpg" onclick="abrirZoom(this.src)" class="img-duo max-h-[50vh] mt-2 bg-black/40">
+                    <p class="text-xs text-slate-400 mt-2">Placa QCU5C70 validada e consultada no SQLite: REGULAR.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 8: YOLO 1 TREINAMENTO (GRÁFICO GIGANTE) -->
+        <div class="slide flex-col justify-center space-y-3 w-full">
+            <div class="flex justify-between items-end">
+                <div>
+                    <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 7</span>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-white">YOLO 1: Detector de Placas Veiculares</h2>
+                    <p class="text-xs md:text-sm text-slate-400">Curvas de perda (Loss) e convergência métrica ao longo do treinamento</p>
+                </div>
+                <span class="text-xs text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30">mAP@50 > 95%</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
+                <div class="md:col-span-8 glass-card p-2 rounded-2xl flex items-center justify-center overflow-hidden">
+                    <img src="../data/resultados treinamento modelo de identificação de placa/results.png" onerror="this.src='../relatorios_benchmark/benchmark_grafico_precisao.png'" onclick="abrirZoom(this.src)" class="img-hero max-h-[64vh] w-full object-contain">
+                </div>
+                <div class="md:col-span-4 space-y-3 text-sm text-slate-300">
+                    <div class="glass-card p-4 rounded-xl border border-slate-700/60">
+                        <span class="text-xs font-bold text-blue-400 uppercase">Dataset de Treino</span>
+                        <p class="mt-1 text-xs">Open Images V7 combinado com centenas de amostras reais de tráfego brasileiro.</p>
+                    </div>
+                    <div class="glass-card p-4 rounded-xl border border-slate-700/60">
+                        <span class="text-xs font-bold text-emerald-400 uppercase">Desempenho</span>
+                        <p class="mt-1 text-xs">Localiza com precisão submilimétrica a região da placa, eliminando 98% do cenário desnecessário.</p>
+                    </div>
+                    <div class="glass-card p-4 rounded-xl border border-slate-700/60">
+                        <span class="text-xs font-bold text-purple-400 uppercase">Arquitetura</span>
+                        <p class="mt-1 text-xs">YOLOv8 Nano (leve e ultrarrápido), otimizado para inferência de alta taxa de quadros.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 9: YOLO 2 TREINAMENTO (GRÁFICOS GIGANTES) -->
+        <div class="slide flex-col justify-center space-y-3 w-full">
+            <div class="flex justify-between items-end">
+                <div>
+                    <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 8</span>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-white">YOLO 2: Detector de Caracteres (Roboflow Universe)</h2>
+                    <p class="text-xs md:text-sm text-slate-400">Métricas oficiais de 300 épocas de treinamento em 36 classes (0-9 e A-Z)</p>
+                </div>
+                <span class="text-xs text-blue-400 font-bold bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/30">mAP@50 = 99,3%</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 items-center">
+                <div class="glass-card p-2 rounded-2xl flex items-center justify-center overflow-hidden">
+                    <img src="../data/resultados treinamento modelo de identificacao de caracteres yolo 2/metricas_roboflow_yolo2.png" onclick="abrirZoom(this.src)" class="img-hero max-h-[62vh] w-full object-contain">
+                </div>
+                <div class="glass-card p-2 rounded-2xl flex items-center justify-center overflow-hidden">
+                    <img src="../data/resultados treinamento modelo de identificacao de caracteres yolo 2/results.png" onclick="abrirZoom(this.src)" class="img-hero max-h-[62vh] w-full object-contain">
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 10: O CHOQUE DE REALIDADE (A MATEMÁTICA) -->
         <div class="slide flex-col justify-center space-y-6 w-full">
             <div>
-                <span class="text-xs font-bold text-red-400 uppercase tracking-widest">Capítulo 5</span>
-                <h2 class="text-3xl font-extrabold text-white mt-1">O Choque de Realidade: A Falha em Cascata</h2>
-                <p class="text-sm text-slate-400">Por que 99,3% de mAP no Roboflow se tornaram apenas 7,0% em fotos reais de rua?</p>
+                <span class="text-xs font-bold text-red-400 uppercase tracking-widest">Capítulo 9</span>
+                <h2 class="text-3xl md:text-4xl font-extrabold text-white mt-1">O Choque de Realidade: A Falha em Cascata</h2>
+                <p class="text-base text-slate-400 mt-1">Por que uma rede neural com 99,3% de mAP alcançou apenas 7,0% de acerto nas placas reais?</p>
             </div>
-            <div class="glass-card p-6 rounded-2xl border-l-4 border-red-500 space-y-4">
-                <h3 class="text-xl font-bold text-white">A Matemática da Exigência Perfeita</h3>
-                <p class="text-sm text-slate-300 leading-relaxed">
-                    Em tarefas normais de detecção de objetos (ex: identificar carros ou pessoas), errar 1 objeto não invalida os outros. <br>
-                    <strong>Em leitura de placas, o sistema é estritamente sequencial:</strong> se a IA acertar 6 caracteres e errar 1 único (ex: trocar 'B' por '8' ou 'Q' por 'O'), <strong>a placa inteira torna-se 100% inútil para a polícia</strong>.
+            <div class="glass-card p-8 rounded-3xl border-l-4 border-red-500 space-y-6 shadow-2xl">
+                <h3 class="text-2xl font-bold text-white">A Matemática da Exigência Perfeita</h3>
+                <p class="text-base text-slate-300 leading-relaxed">
+                    Em tarefas convencionais de IA (ex: identificar pedestres ou carros), errar 1 objeto não invalida os outros. <br>
+                    <strong>Em identificação de placas, a exigência é rigorosamente sequencial:</strong> se o modelo acertar 6 caracteres e errar 1 único (ex: trocar 'B' por '8' ou 'Q' por 'O'), <strong>a placa inteira torna-se 100% inútil para a polícia</strong>.
                 </p>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                    <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700">
-                        <span class="text-xs text-slate-400">Acurácia por Caractere</span>
-                        <div class="text-2xl font-black text-amber-400 mt-1">68,0%</div>
-                        <span class="text-[11px] text-slate-500">Sob ângulo e reflexo real</span>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-3">
+                    <div class="bg-slate-900/90 p-5 rounded-2xl border border-slate-700/80 shadow-inner">
+                        <span class="text-xs text-slate-400 font-semibold uppercase">Acurácia por Caractere</span>
+                        <div class="text-3xl font-black text-amber-400 mt-2">68,0%</div>
+                        <span class="text-xs text-slate-500 mt-1 block">Sob ângulo e reflexo real</span>
                     </div>
-                    <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700">
-                        <span class="text-xs text-slate-400">Probabilidade Conjunta (7 chars)</span>
-                        <div class="text-2xl font-black text-red-500 mt-1">(0,68)⁷ = 6,7%</div>
-                        <span class="text-[11px] text-slate-500">Probabilidade da placa correta</span>
+                    <div class="bg-slate-900/90 p-5 rounded-2xl border border-slate-700/80 shadow-inner">
+                        <span class="text-xs text-slate-400 font-semibold uppercase">Probabilidade Conjunta (7 chars)</span>
+                        <div class="text-3xl font-black text-red-500 mt-2">(0,68)⁷ = 6,7%</div>
+                        <span class="text-xs text-slate-500 mt-1 block">Probabilidade da placa correta</span>
                     </div>
-                    <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700">
-                        <span class="text-xs text-slate-400">Acerto Real Constatado</span>
-                        <div class="text-2xl font-black text-red-400 mt-1">7,0%</div>
-                        <span class="text-[11px] text-slate-500">YOLO isolado nas 71 fotos</span>
+                    <div class="bg-slate-900/90 p-5 rounded-2xl border border-slate-700/80 shadow-inner">
+                        <span class="text-xs text-slate-400 font-semibold uppercase">Acerto Real Constatado</span>
+                        <div class="text-3xl font-black text-red-400 mt-2">7,0%</div>
+                        <span class="text-xs text-slate-500 mt-1 block">YOLO isolado nas 71 fotos reais</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- SLIDE 7: BATALHA DIRETA -->
-        <div class="slide flex-col justify-center space-y-4 w-full">
+        <!-- SLIDE 11: BATALHA DIRETA (GRÁFICO GIGANTE) -->
+        <div class="slide flex-col justify-center space-y-3 w-full">
             <div>
-                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 6</span>
+                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 10</span>
                 <h2 class="text-2xl md:text-3xl font-extrabold text-white">Batalha Direta: YOLO vs EasyOCR vs Híbrido</h2>
+                <p class="text-xs md:text-sm text-slate-400">Teste independente nas 71 imagens reais do Google Drive (fotos de WhatsApp)</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                <div class="glass-card p-2 rounded-xl flex items-center justify-center">
-                    <img src="../relatorios_benchmark/grafico_1_comparativo_yolo_ocr_hibrido.png" class="max-h-72 rounded-lg object-contain shadow-lg">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
+                <div class="md:col-span-8 glass-card p-2 rounded-2xl flex items-center justify-center overflow-hidden">
+                    <img src="../relatorios_benchmark/grafico_1_comparativo_yolo_ocr_hibrido.png" onclick="abrirZoom(this.src)" class="img-hero max-h-[66vh] w-full object-contain">
                 </div>
-                <div class="space-y-3">
+                <div class="md:col-span-4 space-y-3">
                     <div class="glass-card p-4 rounded-xl border-l-4 border-red-500">
                         <span class="text-xs font-bold text-red-400">YOLO ISOLADO (7,0%)</span>
-                        <p class="text-xs text-slate-300 mt-1">Sofria muito com a inclinação e ruído de fundo, perdendo letras intermediárias.</p>
+                        <p class="text-xs text-slate-300 mt-1">Sofria muito com inclinação angular e reflexo, perdendo letras intermediárias.</p>
                     </div>
                     <div class="glass-card p-4 rounded-xl border-l-4 border-amber-500">
                         <span class="text-xs font-bold text-amber-400">EASYOCR ISOLADO (43,7%)</span>
-                        <p class="text-xs text-slate-300 mt-1">Superior ao YOLO em texto plano, porém lia a tarja 'BRASIL' e confundia caracteres semelhantes.</p>
+                        <p class="text-xs text-slate-300 mt-1">Lia a tarja azul 'BRASIL' e confundia caracteres com recortes da fonte FE-Schrift.</p>
                     </div>
-                    <div class="glass-card p-4 rounded-xl border-l-4 border-emerald-500">
+                    <div class="glass-card p-4 rounded-xl border-l-4 border-emerald-500 shadow-lg shadow-emerald-500/10">
                         <span class="text-xs font-bold text-emerald-400">PIPELINE HÍBRIDO (95,8%)</span>
-                        <p class="text-xs text-slate-300 mt-1">Salto dramático de +52,1% combinando retificação, multicontraste, desambiguação e votação consensual.</p>
+                        <p class="text-xs text-slate-300 mt-1">Salto de +52,1% combinando retificação afim, multicontraste, desambiguação e consenso ponderado!</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- SLIDE 8: SOLUÇÃO 1 - DESKEW -->
-        <div class="slide flex-col justify-center space-y-4 w-full">
+        <!-- SLIDE 12: EVOLUÇÃO E GANHOS MARGINAIS (GRÁFICOS GIGANTES) -->
+        <div class="slide flex-col justify-center space-y-3 w-full">
             <div>
-                <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Melhoria Técnica 1</span>
-                <h2 class="text-3xl font-extrabold text-white">Retificação Geométrica: Deskew Hough</h2>
-                <p class="text-sm text-slate-400">Ganho Absoluto: <strong class="text-emerald-400">+23,0% de Acurácia</strong></p>
+                <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Capítulo 11</span>
+                <h2 class="text-2xl md:text-3xl font-extrabold text-white">Evolução Incremental e Ganhos Marginais</h2>
+                <p class="text-xs md:text-sm text-slate-400">O impacto medido de cada técnica implementada no pipeline de engenharia</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="glass-card p-5 rounded-xl border border-slate-700 space-y-3">
-                    <h3 class="text-base font-bold text-blue-400">Como funciona o Algoritmo:</h3>
-                    <ul class="text-xs text-slate-300 space-y-2">
-                        <li>• Detecção de bordas via filtro Canny (50, 150).</li>
-                        <li>• Detecção probabilística de linhas horizontais com HoughLinesP.</li>
-                        <li>• Cálculo trigonométrico do ângulo angular médio de -35° a +35°.</li>
-                        <li>• Rotação por interpolação bicúbica via getRotationMatrix2D e warpAffine.</li>
-                    </ul>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 items-center">
+                <div class="glass-card p-2 rounded-2xl flex items-center justify-center overflow-hidden">
+                    <img src="../relatorios_benchmark/grafico_2_evolucao_etapas.png" onclick="abrirZoom(this.src)" class="img-hero max-h-[62vh] w-full object-contain">
                 </div>
-                <div class="glass-card p-5 rounded-xl border border-slate-700 flex flex-col justify-center items-center text-center">
-                    <div class="text-4xl font-extrabold text-emerald-400">15% ➔ 38%</div>
-                    <p class="text-xs text-slate-400 mt-2">Salto de precisão ao forçar todas as placas a entrarem perfeitamente horizontais no motor de reconhecimento.</p>
+                <div class="glass-card p-2 rounded-2xl flex items-center justify-center overflow-hidden">
+                    <img src="../relatorios_benchmark/grafico_3_ganho_por_metodo.png" onclick="abrirZoom(this.src)" class="img-hero max-h-[62vh] w-full object-contain">
                 </div>
             </div>
         </div>
 
-        <!-- SLIDE 9: SOLUÇÃO 2 - MULTICONTRASTE -->
-        <div class="slide flex-col justify-center space-y-4 w-full">
+        <!-- SLIDE 13: QUALIDADE DE LEITURA (DISTRIBUIÇÃO DE ERROS) -->
+        <div class="slide flex-col justify-center space-y-3 w-full">
             <div>
-                <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Melhoria Técnica 2</span>
-                <h2 class="text-3xl font-extrabold text-white">Multicontraste & Eliminação da Tarja 'BRASIL'</h2>
-                <p class="text-sm text-slate-400">Ganho Absoluto: <strong class="text-emerald-400">+24,0% de Acurácia</strong></p>
+                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 12</span>
+                <h2 class="text-2xl md:text-3xl font-extrabold text-white">Distribuição da Qualidade de Leitura (Distância de Edição)</h2>
+                <p class="text-xs md:text-sm text-slate-400">Como a severidade dos erros caiu drasticamente com a desambiguação sintática</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div class="glass-card p-3 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-blue-400">VARIANTE 1</span>
-                    <h4 class="text-xs font-bold text-white mt-1">Normal HD</h4>
-                    <p class="text-[11px] text-slate-400 mt-1">Miolo recortado sem a tarja azul e upscaling Lanczos4.</p>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
+                <div class="md:col-span-8 glass-card p-2 rounded-2xl flex items-center justify-center overflow-hidden">
+                    <img src="../relatorios_benchmark/grafico_4_distribuicao_qualidade_leitura.png" onclick="abrirZoom(this.src)" class="img-hero max-h-[66vh] w-full object-contain">
                 </div>
-                <div class="glass-card p-3 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-emerald-400">VARIANTE 2</span>
-                    <h4 class="text-xs font-bold text-white mt-1">Realce CLAHE</h4>
-                    <p class="text-[11px] text-slate-400 mt-1">Equalização de histograma + sharpening para bordas suaves.</p>
-                </div>
-                <div class="glass-card p-3 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-purple-400">VARIANTE 3</span>
-                    <h4 class="text-xs font-bold text-white mt-1">Binarização Otsu</h4>
-                    <p class="text-[11px] text-slate-400 mt-1">Segmentação P&B ideal para placas com sombra forte.</p>
-                </div>
-                <div class="glass-card p-3 rounded-xl border border-slate-700">
-                    <span class="text-xs font-bold text-amber-400">VARIANTE 4</span>
-                    <h4 class="text-xs font-bold text-white mt-1">Adaptativo Local</h4>
-                    <p class="text-[11px] text-slate-400 mt-1">Limiarização adaptativa para iluminação não uniforme e farol.</p>
-                </div>
-            </div>
-            <div class="glass-card p-3 rounded-xl text-center text-xs text-slate-300">
-                Acurácia subiu de <strong>38,0% para 62,0%</strong> em virtude da imunidade contra variações de luz.
-            </div>
-        </div>
-
-        <!-- SLIDE 10: SOLUÇÃO 3 - DESAMBIGUAÇÃO -->
-        <div class="slide flex-col justify-center space-y-4 w-full">
-            <div>
-                <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Melhoria Técnica 3</span>
-                <h2 class="text-3xl font-extrabold text-white">Desambiguação Morfológica FE-Schrift</h2>
-                <p class="text-sm text-slate-400">Ganho Absoluto: <strong class="text-emerald-400">+16,0% de Acurácia</strong></p>
-            </div>
-            <div class="glass-card p-5 rounded-xl border border-slate-700 space-y-3">
-                <h3 class="text-sm font-bold text-white">Regras Posicionais Estritas Aplicadas:</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
-                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-                        <strong class="text-blue-400">Posição 1, 2 e 3</strong>
-                        <p class="text-slate-300 mt-1">LETRAS obrigatórias.<br>Converte '0'➔'O', '8'➔'B', '5'➔'S'.</p>
+                <div class="md:col-span-4 space-y-3">
+                    <div class="glass-card p-4 rounded-xl border border-slate-700/70">
+                        <h4 class="text-sm font-bold text-emerald-400">Zero Erros Parciais</h4>
+                        <p class="text-xs text-slate-300 mt-1">A taxa de placas com apenas 1 ou 2 caracteres divergentes foi zerada graças à desambiguação sintática FE-Schrift.</p>
                     </div>
-                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-                        <strong class="text-purple-400">Posição 4</strong>
-                        <p class="text-slate-300 mt-1">DÍGITO obrigatório.<br>Converte 'O'➔'0', 'B'➔'8', 'S'➔'5'.</p>
-                    </div>
-                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-                        <strong class="text-emerald-400">Posição 5</strong>
-                        <p class="text-slate-300 mt-1">Mercosul = LETRA.<br>Antiga Cinza = DÍGITO.</p>
-                    </div>
-                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-                        <strong class="text-amber-400">Posição 6 e 7</strong>
-                        <p class="text-slate-300 mt-1">DÍGITOS obrigatórios.<br>Converte 'I'➔'1', 'O'➔'0', 'Z'➔'2'.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="glass-card p-3 rounded-xl text-center text-xs text-slate-300">
-                Acurácia subiu de <strong>62,0% para 78,0%</strong> corrigindo toda a matriz de confusão da tipografia Mercosul.
-            </div>
-        </div>
-
-        <!-- SLIDE 11: A VIRADA DE CHAVE -->
-        <div class="slide flex-col justify-center space-y-4 w-full">
-            <div>
-                <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Capítulo 7</span>
-                <h2 class="text-2xl md:text-3xl font-extrabold text-white">A Virada de Chave: O Pipeline Híbrido</h2>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                <div class="glass-card p-2 rounded-xl flex items-center justify-center">
-                    <img src="../relatorios_benchmark/grafico_2_evolucao_etapas.png" class="max-h-72 rounded-lg object-contain shadow-lg">
-                </div>
-                <div class="space-y-3">
-                    <div class="glass-card p-4 rounded-xl border border-slate-700">
-                        <h4 class="text-sm font-bold text-emerald-400">Consenso Votado por Caractere</h4>
-                        <p class="text-xs text-slate-300 mt-1">Onde o OCR hesita, o YOLO decide a classe pela caixa delimitadora; onde o YOLO hesita por colagem de letras ('M' e 'H'), o OCR refina a morfologia.</p>
-                    </div>
-                    <div class="glass-card p-4 rounded-xl border border-slate-700">
-                        <h4 class="text-sm font-bold text-blue-400">Resultado Oficial Consolidado</h4>
-                        <p class="text-xs text-slate-300 mt-1"><strong>95,8% de acerto exato</strong> nas placas principais e <strong>89,41% de acerto geral</strong> em todas as 85 placas do dataset.</p>
+                    <div class="glass-card p-4 rounded-xl border border-slate-700/70">
+                        <h4 class="text-sm font-bold text-blue-400">95,8% de Confiabilidade</h4>
+                        <p class="text-xs text-slate-300 mt-1">68 acertos exatos de 71 imagens principais (e 89,41% em todas as 85 placas incluindo as distantes no fundo).</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- SLIDE 12: IMPACTO POR TÉCNICA -->
+        <!-- SLIDE 14: REENGENHARIA FASTAPI -->
         <div class="slide flex-col justify-center space-y-4 w-full">
             <div>
-                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 8</span>
-                <h2 class="text-2xl md:text-3xl font-extrabold text-white">Ganhos Incrementais & Qualidade de Leitura</h2>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                <div class="glass-card p-2 rounded-xl flex items-center justify-center">
-                    <img src="../relatorios_benchmark/grafico_3_ganho_por_metodo.png" class="max-h-72 rounded-lg object-contain shadow-lg">
-                </div>
-                <div class="glass-card p-2 rounded-xl flex items-center justify-center">
-                    <img src="../relatorios_benchmark/grafico_4_distribuicao_qualidade_leitura.png" class="max-h-72 rounded-lg object-contain shadow-lg">
-                </div>
-            </div>
-        </div>
-
-        <!-- SLIDE 13: REENGENHARIA FASTAPI -->
-        <div class="slide flex-col justify-center space-y-4 w-full">
-            <div>
-                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 9</span>
+                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Capítulo 13</span>
                 <h2 class="text-2xl md:text-3xl font-extrabold text-white">Migração de Streamlit para FastAPI + Tailwind</h2>
+                <p class="text-xs md:text-sm text-slate-400">Reengenharia de arquitetura para máxima velocidade e baixo consumo de recursos</p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="glass-card p-5 rounded-xl border-l-4 border-red-500 space-y-2">
-                    <h3 class="text-base font-bold text-red-400"><i class="fa-solid fa-xmark mr-1"></i> Base Anterior: Streamlit</h3>
-                    <p class="text-xs text-slate-300">Monolítico e pesado. Reexecutava o script Python inteiro a cada clique, congestionando CPU/GPU e travando a interface gráfica.</p>
+                <div class="glass-card p-6 rounded-2xl border-l-4 border-red-500 space-y-3">
+                    <h3 class="text-lg font-bold text-red-400 flex items-center gap-2"><i class="fa-solid fa-xmark"></i> Base Anterior: Streamlit</h3>
+                    <p class="text-xs md:text-sm text-slate-300 leading-relaxed">Monolítico e pesado. Reexecutava o script Python inteiro a cada clique do usuário, recarregando bibliotecas, congestionando memória e travando a interface gráfica.</p>
                 </div>
-                <div class="glass-card p-5 rounded-xl border-l-4 border-emerald-500 space-y-2">
-                    <h3 class="text-base font-bold text-emerald-400"><i class="fa-solid fa-check mr-1"></i> Nova Base: FastAPI + Uvicorn</h3>
-                    <p class="text-xs text-slate-300">Backend assíncrono ultraleve. Modelos de IA pré-carregados na inicialização, API REST instantânea e frontend responsivo com Glassmorphism.</p>
+                <div class="glass-card p-6 rounded-2xl border-l-4 border-emerald-500 space-y-3">
+                    <h3 class="text-lg font-bold text-emerald-400 flex items-center gap-2"><i class="fa-solid fa-check"></i> Nova Base: FastAPI + Uvicorn</h3>
+                    <p class="text-xs md:text-sm text-slate-300 leading-relaxed">Backend assíncrono de alto desempenho. Modelos de IA pré-carregados na inicialização, API REST instantânea, badge Mercosul dinâmico e design Glassmorphism responsivo.</p>
                 </div>
             </div>
             <div class="glass-card p-4 rounded-xl text-xs text-slate-300">
-                🚀 A aplicação agora inicia instantaneamente via <strong>iniciar_sistema.bat</strong> na porta <strong>http://localhost:8000</strong>.
+                🚀 O servidor web agora inicia instantaneamente via <strong>iniciar_sistema.bat</strong> em <strong>http://127.0.0.1:8000</strong>.
             </div>
         </div>
 
-        <!-- SLIDE 14: DASHBOARD EXECUTIVO -->
-        <div class="slide flex-col justify-center space-y-4 w-full">
-            <div>
-                <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Conclusão</span>
-                <h2 class="text-2xl md:text-3xl font-extrabold text-white">Dashboard Executivo Consolidado</h2>
+        <!-- SLIDE 15: DASHBOARD EXECUTIVO CONSOLIDADO (GIGANTE) -->
+        <div class="slide flex-col justify-center space-y-3 w-full">
+            <div class="flex justify-between items-end">
+                <div>
+                    <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Conclusão</span>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-white">Dashboard Executivo Consolidado</h2>
+                    <p class="text-xs md:text-sm text-slate-400">Visão panorâmica consolidada de todos os indicadores do projeto ALPR</p>
+                </div>
+                <span class="text-xs text-slate-400 bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700">Clique para expandir em tela cheia</span>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                <div class="glass-card p-2 rounded-xl flex items-center justify-center">
-                    <img src="../relatorios_benchmark/painel_executivo_evolucao_completo.png" class="max-h-72 rounded-lg object-contain shadow-lg">
-                </div>
-                <div class="space-y-3 text-xs text-slate-300">
-                    <div class="glass-card p-3 rounded-lg border border-slate-700">
-                        <strong class="text-white">1. Visão Computacional de Alto Nível:</strong> A solução combinou IA moderna com retificação trigonométrica e heurísticas morfológicas.
-                    </div>
-                    <div class="glass-card p-3 rounded-lg border border-slate-700">
-                        <strong class="text-white">2. Confiabilidade Policial:</strong> Erros de leitura caíram drasticamente, garantindo busca precisa no banco de dados SQLite.
-                    </div>
-                    <div class="glass-card p-3 rounded-lg border border-slate-700">
-                        <strong class="text-white">3. Repositório Completo:</strong> Todo o projeto foi comitado e sincronizado no GitHub com relatórios e scripts executáveis.
-                    </div>
-                </div>
+            <div class="glass-card p-2 rounded-2xl flex items-center justify-center overflow-hidden shadow-2xl">
+                <img src="../relatorios_benchmark/painel_executivo_evolucao_completo.png" onclick="abrirZoom(this.src)" class="img-hero w-full max-h-[72vh] object-contain">
             </div>
         </div>
 
     </main>
 
     <!-- BARRA INFERIOR DE NAVEGAÇÃO -->
-    <footer class="w-full bg-slate-900/80 border-t border-slate-800 px-8 py-3 flex justify-between items-center z-50">
-        <span class="text-xs text-slate-500">Dica: Use as setas do teclado &larr; &rarr; para navegar</span>
+    <footer class="w-full bg-slate-900/90 border-t border-slate-800 px-8 py-3 flex justify-between items-center z-50">
+        <span class="text-xs text-slate-400 flex items-center gap-2">
+            <i class="fa-regular fa-keyboard text-slate-500"></i> Navegue usando as setas &larr; &rarr; ou espaço | Clique nas imagens para dar zoom
+        </span>
         <div class="flex space-x-3">
-            <button onclick="prevSlide()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-lg transition border border-slate-700 flex items-center gap-2">
+            <button onclick="prevSlide()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition border border-slate-700 flex items-center gap-2 shadow-sm">
                 <i class="fa-solid fa-arrow-left"></i> Anterior
             </button>
-            <button onclick="nextSlide()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-lg transition shadow-lg shadow-blue-500/20 flex items-center gap-2">
+            <button onclick="nextSlide()" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl transition shadow-lg shadow-blue-500/25 flex items-center gap-2">
                 Próximo <i class="fa-solid fa-arrow-right"></i>
             </button>
         </div>
@@ -417,12 +479,15 @@
         let currentSlide = 0;
         const slides = document.querySelectorAll('.slide');
         const indicator = document.getElementById('slideIndicator');
+        const lightboxModal = document.getElementById('lightboxModal');
+        const lightboxImg = document.getElementById('lightboxImg');
 
         function updateSlide() {
             slides.forEach((s, idx) => {
                 s.classList.toggle('active', idx === currentSlide);
             });
             indicator.textContent = `Slide ${currentSlide + 1} / ${slides.length}`;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function nextSlide() {
@@ -440,6 +505,10 @@
         }
 
         document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                fecharZoom();
+                return;
+            }
             if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
             if (e.key === 'ArrowLeft') prevSlide();
         });
@@ -450,6 +519,16 @@
             } else if (document.exitFullscreen) {
                 document.exitFullscreen();
             }
+        }
+
+        function abrirZoom(src) {
+            lightboxImg.src = src;
+            lightboxModal.classList.add('open');
+        }
+
+        function fecharZoom() {
+            lightboxModal.classList.remove('open');
+            lightboxImg.src = '';
         }
     </script>
 </body>

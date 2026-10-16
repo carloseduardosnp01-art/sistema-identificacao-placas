@@ -60,12 +60,20 @@ echo.
 rem Abre o navegador apos 3 segundos quando o servidor subir
 start "" /min cmd /c "timeout /t 3 /nobreak >nul & start "" %URL%"
 
-rem Executa o servidor FastAPI com Uvicorn
-%PY% -m uvicorn src.server:app --host 0.0.0.0 --port %PORTA% --reload
+rem Executa o servidor FastAPI com Uvicorn (usando 127.0.0.1 para evitar bloqueios de firewall do Windows)
+%PY% -m uvicorn src.server:app --host 127.0.0.1 --port %PORTA%
 
 if errorlevel 1 (
     echo.
-    echo [AVISO] A aplicacao foi finalizada com erro.
-    pause
+    echo [AVISO] Tentando porta alternativa 8080...
+    set "PORTA=8080"
+    set "URL=http://localhost:8080"
+    start "" /min cmd /c "timeout /t 3 /nobreak >nul & start "" %URL%"
+    %PY% -m uvicorn src.server:app --host 127.0.0.1 --port 8080
+    if errorlevel 1 (
+        echo.
+        echo [AVISO] A aplicacao foi finalizada com erro.
+        pause
+    )
 )
 endlocal
