@@ -89,6 +89,10 @@
         <button onclick="trocarAba('analise')" id="btn-aba-analise" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-emerald-500 text-white shadow-lg shadow-emerald-500/25">
           Identificação por Foto
         </button>
+        <button onclick="trocarAba('live')" id="btn-aba-live" class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all flex items-center space-x-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Câmera ao Vivo</span>
+        </button>
         <button onclick="trocarAba('veiculos')" id="btn-aba-veiculos" class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
           Base de Veículos
         </button>
@@ -110,7 +114,17 @@
           <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">Detecção e Leitura Automática de Placas</h2>
           <p class="text-sm text-slate-400">Faça upload de uma foto veicular para detecção instantânea via YOLO, OCR adaptativo e checagem no banco de segurança.</p>
 
-          <form id="form-upload" class="pt-4">
+          <!-- Seletor de Motor OCR -->
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2 pb-1">
+            <span class="text-xs font-semibold text-slate-300">Modo de Operação:</span>
+            <select id="select-modo-ocr" class="bg-slate-900 border border-slate-700 text-xs rounded-xl px-3.5 py-2 text-emerald-400 font-semibold focus:outline-none focus:border-emerald-500 shadow-inner">
+              <option value="hibrido" selected>⚡ Híbrido Inteligente (Fast-Plate 15ms + PaddleOCR 94%)</option>
+              <option value="live">⏱️ Tempo Real / Live (Fast-Plate-OCR 15ms)</option>
+              <option value="deep">🔍 Auditoria Cirúrgica (PaddleOCR 94,1% - Máxima Precisão)</option>
+            </select>
+          </div>
+
+          <form id="form-upload" class="pt-2">
             <label for="input-foto" class="flex flex-col items-center justify-center border-2 border-dashed border-slate-700 hover:border-emerald-500/60 bg-slate-900/50 hover:bg-slate-900/80 rounded-2xl p-8 cursor-pointer transition-all group">
               <div class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-emerald-400 group-hover:scale-110 transition-all mb-4">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,7 +175,99 @@
 
     </div>
 
-    <!-- SEÇÃO 2: BASE DE VEÍCULOS E CONSULTA -->
+    <!-- SEÇÃO 2: CÂMERA AO VIVO / STREAMING REAL-TIME -->
+    <div id="secao-live" class="hidden space-y-6">
+      
+      <!-- Topo: Controles da Câmera e Status -->
+      <div class="glass-card rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="flex items-center space-x-3">
+          <div class="relative flex items-center justify-center">
+            <span id="live-indicator-ping" class="hidden absolute w-4 h-4 rounded-full bg-emerald-400 opacity-75 animate-ping"></span>
+            <span id="live-indicator-dot" class="w-3 h-3 rounded-full bg-slate-600"></span>
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+              Streaming de Câmera em Tempo Real
+              <span class="text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">Fast-Plate-OCR 60 FPS</span>
+            </h3>
+            <p class="text-xs text-slate-400">Detecção YOLOv8 ultrarrápida combinada com leitura CCT-XS e verificação policial instantânea.</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-3 w-full sm:w-auto">
+          <select id="select-camera" class="bg-slate-900 border border-slate-700 text-xs rounded-xl px-3 py-2 text-slate-300 focus:outline-none focus:border-emerald-500 flex-1 sm:flex-initial">
+            <option value="">Carregando câmeras...</option>
+          </select>
+          <button id="btn-toggle-camera" onclick="alternarCamera()" class="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white transition-all shadow-lg shadow-emerald-500/25 flex items-center space-x-2 whitespace-nowrap">
+            <span id="icone-btn-camera">▶</span>
+            <span id="txt-btn-camera">Iniciar Câmera</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Área de Vídeo e Feed Lateral -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Viewport do Stream com Canvas de Bounding Boxes -->
+        <div class="lg:col-span-8 glass-card rounded-2xl p-4 flex flex-col items-center justify-center relative overflow-hidden bg-black/60 min-h-[440px]">
+          <div class="relative w-full aspect-video rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center border border-slate-800 shadow-2xl">
+            <!-- Video da Câmera -->
+            <video id="video-stream" autoplay playsinline muted class="w-full h-full object-contain"></video>
+            
+            <!-- Canvas Sobreposto para Renderização das Caixas e Placas -->
+            <canvas id="canvas-overlay" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+            
+            <!-- Canvas Oculto para Captura de Frames -->
+            <canvas id="canvas-captura" class="hidden"></canvas>
+
+            <!-- Placeholder enquanto Câmera está desligada -->
+            <div id="live-placeholder" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-slate-400 p-6 text-center transition-opacity">
+              <div class="w-16 h-16 rounded-2xl bg-slate-800/80 flex items-center justify-center mb-3 text-emerald-400 shadow-inner">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+              </div>
+              <p class="text-base font-bold text-slate-200">Câmera em Modo de Espera</p>
+              <p class="text-xs text-slate-500 mt-1 max-w-sm">Conecte sua webcam ou câmera IP e clique em "Iniciar Câmera" para reconhecimento automático em tempo real.</p>
+            </div>
+          </div>
+
+          <!-- Barra Inferior de Métricas e Telemetria -->
+          <div class="w-full mt-3 flex items-center justify-between text-xs text-slate-400 px-2 font-mono">
+            <div class="flex items-center space-x-4">
+              <span>FPS: <strong id="live-fps" class="text-emerald-400">0.0</strong></span>
+              <span>Latência Inferência: <strong id="live-latencia" class="text-slate-200">0 ms</strong></span>
+            </div>
+            <div class="flex items-center space-x-3">
+              <span>Capturas: <strong id="live-count" class="text-emerald-400 font-bold">0</strong></span>
+              <span id="live-status-pill" class="px-2.5 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-400 font-sans font-medium">Inativo</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feed Lateral das Últimas Placas Detectadas -->
+        <div class="lg:col-span-4 flex flex-col space-y-3">
+          <div class="glass-card rounded-2xl p-4 flex-1 flex flex-col h-full">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+              <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-2">
+                <span>📋</span> <span>Feed de Leituras ao Vivo</span>
+              </h4>
+              <button onclick="limparHistoricoLive()" class="text-[11px] text-slate-500 hover:text-slate-300 transition-colors">Limpar Histórico</button>
+            </div>
+
+            <div id="feed-live-container" class="space-y-2.5 overflow-y-auto max-h-[460px] pr-1">
+              <div id="feed-live-vazio" class="text-center py-16 text-slate-500 text-xs">
+                Aguardando identificação de veículos na câmera...
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- SEÇÃO 3: BASE DE VEÍCULOS E CONSULTA -->
     <div id="secao-veiculos" class="hidden space-y-8">
       
       <!-- Topo: Cadastro Rápido e Busca -->
@@ -254,33 +360,63 @@
 
   <!-- Scripts Frontend -->
   <script>
+    // --- CONTROLE DE ABAS ---
+    let cameraAtiva = false;
+    let streamCamera = null;
+    let animacaoLiveId = null;
+    let processandoFrame = false;
+    let camerasListadas = false;
+    let totalCapturasLive = 0;
+    let historicoPlacasLive = new Map(); // placa -> timestamp do ultimo registro
+
     function trocarAba(aba) {
       const secaoAnalise = document.getElementById('secao-analise');
+      const secaoLive = document.getElementById('secao-live');
       const secaoVeiculos = document.getElementById('secao-veiculos');
+
       const btnAnalise = document.getElementById('btn-aba-analise');
+      const btnLive = document.getElementById('btn-aba-live');
       const btnVeiculos = document.getElementById('btn-aba-veiculos');
+
+      const classeAtiva = 'px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-emerald-500 text-white shadow-lg shadow-emerald-500/25';
+      const classeInativa = 'px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all';
+
+      // Desativa todas
+      secaoAnalise.classList.add('hidden');
+      secaoLive.classList.add('hidden');
+      secaoVeiculos.classList.add('hidden');
+
+      btnAnalise.className = classeInativa;
+      btnLive.className = classeInativa + ' flex items-center space-x-1.5';
+      btnVeiculos.className = classeInativa;
 
       if (aba === 'analise') {
         secaoAnalise.classList.remove('hidden');
-        secaoVeiculos.classList.add('hidden');
-        btnAnalise.className = 'px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-emerald-500 text-white shadow-lg shadow-emerald-500/25';
-        btnVeiculos.className = 'px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all';
-      } else {
-        secaoAnalise.classList.add('hidden');
+        btnAnalise.className = classeAtiva;
+        if (cameraAtiva) pararCamera();
+      } else if (aba === 'live') {
+        secaoLive.classList.remove('hidden');
+        btnLive.className = classeAtiva + ' flex items-center space-x-1.5';
+        if (!camerasListadas) listarCamerasDisponiveis();
+      } else if (aba === 'veiculos') {
         secaoVeiculos.classList.remove('hidden');
-        btnVeiculos.className = 'px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-emerald-500 text-white shadow-lg shadow-emerald-500/25';
-        btnAnalise.className = 'px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all';
+        btnVeiculos.className = classeAtiva;
+        if (cameraAtiva) pararCamera();
         carregarListaVeiculos();
       }
     }
 
+    // --- IDENTIFICAÇÃO POR FOTO ---
     async function processarUpload() {
       const fileInput = document.getElementById('input-foto');
       if (!fileInput.files || fileInput.files.length === 0) return;
 
       const file = fileInput.files[0];
+      const modoOcr = document.getElementById('select-modo-ocr').value || 'hibrido';
+
       const formData = new FormData();
       formData.append('arquivo', file);
+      formData.append('modo', modoOcr);
 
       const loader = document.getElementById('loader');
       const painel = document.getElementById('painel-resultados');
@@ -449,6 +585,343 @@
       } catch (err) {
         alert('Erro de conexão: ' + err.message);
       }
+    }
+
+    // ==========================================
+    // --- MOTOR DE STREAMING AO VIVO (60 FPS) ---
+    // ==========================================
+
+    let audioCtx = null;
+    let historicoFps = [];
+    let ultimoTempoFrame = performance.now();
+
+    function tocarAlertaRoubo() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // Lá 5
+        osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+      } catch (e) {
+        console.warn("Áudio não disponível:", e);
+      }
+    }
+
+    async function listarCamerasDisponiveis() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        const select = document.getElementById('select-camera');
+        select.innerHTML = '';
+
+        if (videoDevices.length === 0) {
+          select.innerHTML = '<option value="">Nenhuma câmera detectada</option>';
+          return;
+        }
+
+        videoDevices.forEach((dev, idx) => {
+          const opt = document.createElement('option');
+          opt.value = dev.deviceId;
+          opt.text = dev.label || `Câmera ${idx + 1} (${dev.deviceId.slice(0, 5)}...)`;
+          select.appendChild(opt);
+        });
+        camerasListadas = true;
+      } catch (err) {
+        console.warn("Erro ao enumerar câmeras:", err);
+      }
+    }
+
+    async function alternarCamera() {
+      if (cameraAtiva) {
+        pararCamera();
+      } else {
+        await iniciarCamera();
+      }
+    }
+
+    async function iniciarCamera() {
+      const selectCam = document.getElementById('select-camera');
+      const deviceId = selectCam.value;
+      const video = document.getElementById('video-stream');
+      const placeholder = document.getElementById('live-placeholder');
+      const btnToggle = document.getElementById('btn-toggle-camera');
+      const txtBtn = document.getElementById('txt-btn-camera');
+      const iconeBtn = document.getElementById('icone-btn-camera');
+      const pingInd = document.getElementById('live-indicator-ping');
+      const dotInd = document.getElementById('live-indicator-dot');
+      const statusPill = document.getElementById('live-status-pill');
+
+      const constraints = {
+        video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "environment" },
+        audio: false
+      };
+
+      try {
+        streamCamera = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = streamCamera;
+        await video.play();
+
+        cameraAtiva = true;
+        placeholder.classList.add('opacity-0', 'pointer-events-none');
+        pingInd.classList.remove('hidden');
+        dotInd.className = 'w-3 h-3 rounded-full bg-emerald-400';
+        statusPill.textContent = 'Transmissão Ativa';
+        statusPill.className = 'px-2.5 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-400 font-sans font-medium border border-emerald-500/30';
+
+        btnToggle.className = 'px-5 py-2 rounded-xl text-xs font-bold bg-red-500 hover:bg-red-600 text-white transition-all shadow-lg shadow-red-500/25 flex items-center space-x-2 whitespace-nowrap';
+        iconeBtn.textContent = '■';
+        txtBtn.textContent = 'Parar Câmera';
+
+        // Atualiza lista caso labels não estivessem disponíveis antes da permissão
+        if (!camerasListadas) await listarCamerasDisponiveis();
+
+        iniciarLoopCaptura();
+      } catch (err) {
+        alert('Não foi possível acessar a câmera: ' + err.message);
+        pararCamera();
+      }
+    }
+
+    function pararCamera() {
+      cameraAtiva = false;
+      if (animacaoLiveId) {
+        cancelAnimationFrame(animacaoLiveId);
+        animacaoLiveId = null;
+      }
+      if (streamCamera) {
+        streamCamera.getTracks().forEach(t => t.stop());
+        streamCamera = null;
+      }
+
+      const video = document.getElementById('video-stream');
+      video.srcObject = null;
+
+      const placeholder = document.getElementById('live-placeholder');
+      placeholder.classList.remove('opacity-0', 'pointer-events-none');
+
+      const btnToggle = document.getElementById('btn-toggle-camera');
+      const txtBtn = document.getElementById('txt-btn-camera');
+      const iconeBtn = document.getElementById('icone-btn-camera');
+      const pingInd = document.getElementById('live-indicator-ping');
+      const dotInd = document.getElementById('live-indicator-dot');
+      const statusPill = document.getElementById('live-status-pill');
+      const canvasOverlay = document.getElementById('canvas-overlay');
+
+      const ctx = canvasOverlay.getContext('2d');
+      ctx.clearRect(0, 0, canvasOverlay.width, canvasOverlay.height);
+
+      pingInd.classList.add('hidden');
+      dotInd.className = 'w-3 h-3 rounded-full bg-slate-600';
+      statusPill.textContent = 'Inativo';
+      statusPill.className = 'px-2.5 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-400 font-sans font-medium';
+
+      btnToggle.className = 'px-5 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white transition-all shadow-lg shadow-emerald-500/25 flex items-center space-x-2 whitespace-nowrap';
+      iconeBtn.textContent = '▶';
+      txtBtn.textContent = 'Iniciar Câmera';
+
+      document.getElementById('live-fps').textContent = '0.0';
+      document.getElementById('live-latencia').textContent = '0 ms';
+    }
+
+    function iniciarLoopCaptura() {
+      const video = document.getElementById('video-stream');
+      const canvasOverlay = document.getElementById('canvas-overlay');
+      const canvasCaptura = document.getElementById('canvas-captura');
+
+      let ultimoEnvio = 0;
+      const INTERVALO_FRAME_MS = 60; // ~16 FPS de amostragem na API para manter latência < 30ms
+
+      async function ciclo(tempoAtual) {
+        if (!cameraAtiva) return;
+
+        // Mantém sincronizada a resolução do canvas overlay com o elemento de vídeo
+        if (video.videoWidth && video.videoHeight) {
+          if (canvasOverlay.width !== video.videoWidth || canvasOverlay.height !== video.videoHeight) {
+            canvasOverlay.width = video.videoWidth;
+            canvasOverlay.height = video.videoHeight;
+          }
+          if (canvasCaptura.width !== video.videoWidth || canvasCaptura.height !== video.videoHeight) {
+            canvasCaptura.width = video.videoWidth;
+            canvasCaptura.height = video.videoHeight;
+          }
+        }
+
+        // Se o frame anterior já terminou e passou o intervalo mínimo
+        if (!processandoFrame && (tempoAtual - ultimoEnvio >= INTERVALO_FRAME_MS) && video.videoWidth > 0) {
+          processandoFrame = true;
+          ultimoEnvio = tempoAtual;
+
+          const ctxCap = canvasCaptura.getContext('2d');
+          ctxCap.drawImage(video, 0, 0, canvasCaptura.width, canvasCaptura.height);
+
+          canvasCaptura.toBlob(async (blob) => {
+            if (!blob || !cameraAtiva) {
+              processandoFrame = false;
+              return;
+            }
+
+            const t0 = performance.now();
+            const formData = new FormData();
+            formData.append('arquivo', blob, 'frame.jpg');
+
+            try {
+              const resp = await fetch('/api/detectar_live', {
+                method: 'POST',
+                body: formData
+              });
+              const data = await resp.json();
+              const deltaMs = performance.now() - t0;
+
+              // Calcula FPS
+              const agora = performance.now();
+              const fpsInst = 1000 / (agora - ultimoTempoFrame);
+              ultimoTempoFrame = agora;
+              historicoFps.push(fpsInst);
+              if (historicoFps.length > 10) historicoFps.shift();
+              const mediaFps = historicoFps.reduce((a, b) => a + b, 0) / historicoFps.length;
+
+              document.getElementById('live-fps').textContent = mediaFps.toFixed(1);
+              document.getElementById('live-latencia').textContent = `${data.tempo_ms || deltaMs.toFixed(0)} ms`;
+
+              if (data.sucesso) {
+                desenharAnotacoesOverlay(data.placas || []);
+                processarPlacasLive(data.placas || []);
+              }
+            } catch (err) {
+              console.warn("Falha frame ao vivo:", err);
+            } finally {
+              processandoFrame = false;
+            }
+          }, 'image/jpeg', 0.80);
+        }
+
+        animacaoLiveId = requestAnimationFrame(ciclo);
+      }
+
+      animacaoLiveId = requestAnimationFrame(ciclo);
+    }
+
+    function desenharAnotacoesOverlay(placas) {
+      const canvas = document.getElementById('canvas-overlay');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (!placas || placas.length === 0) return;
+
+      placas.forEach(p => {
+        const [x1, y1, x2, y2] = p.bbox;
+        const w = x2 - x1;
+        const h = y2 - y1;
+        const isRoubo = p.status_roubo === true;
+
+        const corPrincipal = isRoubo ? '#ef4444' : '#10b981';
+        const corFundo = isRoubo ? 'rgba(239, 68, 68, 0.85)' : 'rgba(16, 185, 129, 0.85)';
+
+        // 1. Bounding Box da Placa
+        ctx.strokeStyle = corPrincipal;
+        ctx.lineWidth = Math.max(3, Math.round(canvas.width / 400));
+        ctx.strokeRect(x1, y1, w, h);
+
+        // 2. Etiqueta Superior com Nome da Placa e Alerta
+        const textoLabel = isRoubo ? `🚨 ${p.placa} (ROUBADO)` : `✔ ${p.placa} (${(p.confianca * 100).toFixed(0)}%)`;
+        const fontSize = Math.max(14, Math.round(canvas.width / 55));
+        ctx.font = `bold ${fontSize}px "Plus Jakarta Sans", monospace`;
+        const textMetrics = ctx.measureText(textoLabel);
+        const padding = 6;
+        const badgeW = textMetrics.width + padding * 2;
+        const badgeH = fontSize + padding * 2;
+
+        const badgeY = Math.max(0, y1 - badgeH - 4);
+        ctx.fillStyle = corFundo;
+        ctx.beginPath();
+        ctx.roundRect(x1, badgeY, badgeW, badgeH, 6);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(textoLabel, x1 + padding, badgeY + badgeH - padding - 2);
+      });
+    }
+
+    function processarPlacasLive(placas) {
+      if (!placas || placas.length === 0) return;
+
+      const agora = Date.now();
+      const container = document.getElementById('feed-live-container');
+      const vazio = document.getElementById('feed-live-vazio');
+
+      placas.forEach(p => {
+        const ultimaVez = historicoPlacasLive.get(p.placa) || 0;
+        // Notifica no feed se passou mais de 2.5 segundos desde a última leitura da mesma placa
+        if (agora - ultimaVez > 2500) {
+          historicoPlacasLive.set(p.placa, agora);
+          totalCapturasLive++;
+          document.getElementById('live-count').textContent = totalCapturasLive;
+
+          if (vazio) vazio.remove();
+
+          if (p.status_roubo) {
+            tocarAlertaRoubo();
+          }
+
+          const card = document.createElement('div');
+          card.className = 'glass-card rounded-xl p-3 border transition-all animate-bounce ' + 
+            (p.status_roubo ? 'border-red-500/60 bg-red-950/40 shadow-lg shadow-red-500/20' : 'border-slate-800 hover:border-emerald-500/40');
+          
+          const horaStr = new Date().toLocaleTimeString('pt-BR');
+
+          card.innerHTML = `
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2.5">
+                <div class="px-2.5 py-1 rounded-md bg-white border border-slate-900 font-mono font-black text-black text-sm tracking-wider shadow">
+                  ${p.placa}
+                </div>
+                <div>
+                  <span class="text-[11px] font-semibold ${p.status_roubo ? 'text-red-400 font-bold' : 'text-slate-300'} block">
+                    ${p.status_roubo ? '🚨 VEÍCULO ROUBADO' : p.padrao}
+                  </span>
+                  <span class="text-[10px] text-slate-500">${horaStr} • Confiança: ${(p.confianca * 100).toFixed(0)}%</span>
+                </div>
+              </div>
+            </div>
+            ${p.veiculo ? `
+              <div class="mt-2 text-[11px] text-slate-300 pt-1.5 border-t border-slate-800 flex justify-between">
+                <span>${p.veiculo.marca} ${p.veiculo.modelo} (${p.veiculo.ano})</span>
+                <span class="text-slate-400">${p.veiculo.cor}</span>
+              </div>
+            ` : ''}
+          `;
+
+          // Insere no topo
+          container.insertBefore(card, container.firstChild);
+
+          // Limita histórico visual a 25 itens
+          while (container.children.length > 25) {
+            container.removeChild(container.lastChild);
+          }
+        }
+      });
+    }
+
+    function limparHistoricoLive() {
+      historicoPlacasLive.clear();
+      const container = document.getElementById('feed-live-container');
+      container.innerHTML = `
+        <div id="feed-live-vazio" class="text-center py-16 text-slate-500 text-xs">
+          Aguardando identificação de veículos na câmera...
+        </div>
+      `;
     }
 
     // Inicializa carregando a lista na inicialização

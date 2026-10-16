@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
 from src.detector import DetectorPlacas
-from src.pipeline_misto import executar_pipeline_misto
+from src.ocr_hibrido import executar_ocr_hibrido
 from src.database import (
     inicializar_banco,
     consultar_placa,
@@ -67,8 +67,11 @@ async def index(request: Request):
     return templates.TemplateResponse(request=request, name="index.html")
 
 @app.post("/api/detectar")
-async def api_detectar(arquivo: UploadFile = File(...)):
-    """Recebe uma foto, executa detecção YOLO, Pipeline Híbrido e consulta de segurança."""
+async def api_detectar(arquivo: UploadFile = File(...), modo: str = Form("hibrido")):
+    """
+    Recebe uma foto, executa detecção YOLO, OCR Híbrido (FastPlate + Paddle) e consulta de segurança.
+    Modos suportados: 'hibrido' (padrão inteligente), 'live' (15ms ultra-rápido) ou 'deep' (auditoria cirúrgica 94%).
+    """
     try:
         t_inicio = time.time()
         conteudo = await arquivo.read()
@@ -86,12 +89,12 @@ async def api_detectar(arquivo: UploadFile = File(...)):
 
         for p in placas_detectadas:
             crop = p["crop"]
-            # 2. Executa o Pipeline Híbrido Votado (Deskew + Multicontraste + YOLO 2 + OCR)
-            res_hibrido = executar_pipeline_misto(crop)
-            texto_placa = res_hibrido.get("texto_corrigido") or ""
-            confianca = res_hibrido.get("confianca", 0.0)
-            padrao = res_hibrido.get("padrao", "Desconhecido")
-            metodo = res_hibrido.get("metodo", "Pipeline Híbrido Votado")
+            # 2. Executa o Motor Híbrido Unificado (FastPlate 15ms + PaddleOCR)
+            res_ocr = executar_ocr_hibrido(crop, modo=modo)
+            texto_placa = res_ocr.get("texto_corrigido") or ""
+            confianca = res_ocr.get("confianca", 0.0)
+            padrao = res_ocr.get("padrao", "Desconhecido")
+            metodo = res_ocr.get("metodo", "Motor Híbrido")
 
             # Codifica crop em Base64 para exibição no frontend
             _, buffer_crop = cv2.imencode(".jpg", crop)
@@ -142,6 +145,55 @@ async def api_detectar(arquivo: UploadFile = File(...)):
     except Exception as e:
         import traceback
         traceback.print_exc()
+        return JSONResponse({"sucesso": False, "erro": str(e)}, status_code=500)
+
+@app.post("/api/detectar_live")
+async def api_detectar_live(arquivo: UploadFile = File(...)):
+    """
+    Endpoint otimizado para Streaming ao Vivo / Webcam (60 FPS).
+    Executa YOLO + Fast-Plate-OCR em ~20-30ms e retorna apenas metadados e coordenadas de bbox.
+    """
+    try:
+        t0 = time.perf_counter()
+        conteudo = await arquivo.read()
+        nparr = np.frombuffer(conteudo, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        if img is None:
+            return JSONResponse({"sucesso": False, "erro": "Frame inválido"}, status_code=400)
+
+        # Detecção rápida com YOLO
+        placas_detectadas = detector.detectar(img, confianca_minima=0.25)
+        lista_resultados = []
+
+        for p in placas_detectadas:
+            crop = p["crop"]
+            # Modo live: Fast-Plate-OCR (~10-15ms)
+            res_fast = executar_ocr_hibrido(crop, modo="live")
+            texto_placa = res_fast.get("texto_corrigido") or ""
+            
+            if texto_placa:
+                info_veiculo = consultar_placa(texto_placa)
+                status_roubo = (info_veiculo["status_roubo"] == 1) if info_veiculo else False
+                
+                lista_resultados.append({
+                    "bbox": [int(v) for v in p.get("bbox", [0, 0, 0, 0])],
+                    "placa": texto_placa,
+                    "padrao": res_fast.get("padrao", "Desconhecido"),
+                    "confianca": float(round(res_fast.get("confianca", 0.0), 2)),
+                    "status_roubo": status_roubo,
+                    "veiculo": dict(info_veiculo) if info_veiculo else None
+                })
+
+        tempo_ms = (time.perf_counter() - t0) * 1000.0
+
+        return JSONResponse({
+            "sucesso": True,
+            "tempo_ms": round(tempo_ms, 1),
+            "placas": lista_resultados
+        })
+
+    except Exception as e:
         return JSONResponse({"sucesso": False, "erro": str(e)}, status_code=500)
 
 @app.get("/api/veiculos")
