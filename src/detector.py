@@ -58,15 +58,8 @@ class DetectorPlacas:
                 x1, y1 = max(0, x1), max(0, y1)
                 x2, y2 = min(w, x2), min(h, y2)
 
-                # Margem pequena de segurança ao redor do recorte (padding)
-                pad_x = int((x2 - x1) * 0.05)
-                pad_y = int((y2 - y1) * 0.05)
-                crop_x1 = max(0, x1 - pad_x)
-                crop_y1 = max(0, y1 - pad_y)
-                crop_x2 = min(w, x2 + pad_x)
-                crop_y2 = min(h, y2 + pad_y)
-
-                crop = imagem[crop_y1:crop_y2, crop_x1:crop_x2]
+                # Recorte exato da bounding box detectada pelo modelo (sem padding destrutivo)
+                crop = imagem[y1:y2, x1:x2]
 
                 if crop.size > 0:
                     placas_detectadas.append({
