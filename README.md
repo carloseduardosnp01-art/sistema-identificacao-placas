@@ -58,9 +58,13 @@ O sistema foi validado em um teste cego de ponta a ponta sobre as 71 imagens rea
 | **Tempo Médio por Imagem** | ~27 segundos |
 
 Os relatórios detalhados e gráficos gerados estão disponíveis na pasta [`relatorios_benchmark/`](relatorios_benchmark/):
+- **Dashboard Executivo Completo (2x2):** [`relatorios_benchmark/painel_executivo_evolucao_completo.png`](relatorios_benchmark/painel_executivo_evolucao_completo.png)
+- **Comparativo YOLO vs OCR vs Híbrido:** [`relatorios_benchmark/grafico_1_comparativo_yolo_ocr_hibrido.png`](relatorios_benchmark/grafico_1_comparativo_yolo_ocr_hibrido.png)
+- **Evolução por Etapas de Engenharia:** [`relatorios_benchmark/grafico_2_evolucao_etapas.png`](relatorios_benchmark/grafico_2_evolucao_etapas.png)
+- **Ganho Marginal e Impacto por Técnica:** [`relatorios_benchmark/grafico_3_ganho_por_metodo.png`](relatorios_benchmark/grafico_3_ganho_por_metodo.png)
+- **Distribuição da Qualidade de Leitura (Erros):** [`relatorios_benchmark/grafico_4_distribuicao_qualidade_leitura.png`](relatorios_benchmark/grafico_4_distribuicao_qualidade_leitura.png)
 - **Planilha Completa Excel:** [`relatorios_benchmark/benchmark_placas_completo.xlsx`](relatorios_benchmark/benchmark_placas_completo.xlsx)
 - **Planilha CSV:** [`relatorios_benchmark/benchmark_placas_completo.csv`](relatorios_benchmark/benchmark_placas_completo.csv)
-- **Gráfico Comparativo de Desempenho:** [`relatorios_benchmark/benchmark_grafico_precisao.png`](relatorios_benchmark/benchmark_grafico_precisao.png)
 
 ---
 
