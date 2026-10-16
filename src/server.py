@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
 from src.detector import DetectorPlacas
-from src.ocr import extrair_texto_placa
+from src.pipeline_misto import executar_pipeline_misto
 from src.database import (
     inicializar_banco,
     consultar_placa,
@@ -68,7 +68,7 @@ async def index(request: Request):
 
 @app.post("/api/detectar")
 async def api_detectar(arquivo: UploadFile = File(...)):
-    """Recebe uma foto, executa detecção YOLO, OCR e consulta de segurança."""
+    """Recebe uma foto, executa detecção YOLO, Pipeline Híbrido e consulta de segurança."""
     try:
         t_inicio = time.time()
         conteudo = await arquivo.read()
@@ -78,41 +78,54 @@ async def api_detectar(arquivo: UploadFile = File(...)):
         if img is None:
             raise HTTPException(status_code=400, detail="Arquivo de imagem inválido.")
 
-        # 1. Detecção YOLO
+        # 1. Detecção YOLO da placa veicular
         placas_detectadas = detector.detectar(img, confianca_minima=0.20)
         
         resultados_placas = []
+        img_anotada = img.copy()
+
         for p in placas_detectadas:
             crop = p["crop"]
-            res_ocr = extrair_texto_placa(crop)
-            texto_placa = res_ocr.get("texto_corrigido") or ""
-            confianca_ocr = res_ocr.get("confianca", 0.0)
-            padrao = res_ocr.get("padrao", "Desconhecido")
-            metodo = res_ocr.get("metodo", "N/A")
+            # 2. Executa o Pipeline Híbrido Votado (Deskew + Multicontraste + YOLO 2 + OCR)
+            res_hibrido = executar_pipeline_misto(crop)
+            texto_placa = res_hibrido.get("texto_corrigido") or ""
+            confianca = res_hibrido.get("confianca", 0.0)
+            padrao = res_hibrido.get("padrao", "Desconhecido")
+            metodo = res_hibrido.get("metodo", "Pipeline Híbrido Votado")
 
-            # Codifica crop em Base64 para exibição rápida no frontend
+            # Codifica crop em Base64 para exibição no frontend
             _, buffer_crop = cv2.imencode(".jpg", crop)
             crop_b64 = "data:image/jpeg;base64," + base64.b64encode(buffer_crop).decode("utf-8")
 
             # Consulta no banco de dados de segurança
             info_veiculo = consultar_placa(texto_placa) if texto_placa else None
+            status_roubo = (info_veiculo["status_roubo"] == 1) if info_veiculo else False
 
             p["texto"] = texto_placa
-            p["info_veiculo"] = info_veiculo
+            p["info_veiculo"] = dict(info_veiculo) if info_veiculo else None
             p["padrao"] = padrao
+
+            # Anota a bounding box na imagem completa
+            bbox = p.get("bbox", (0, 0, img.shape[1], img.shape[0]))
+            img_anotada = desenhar_resultado(
+                img_anotada,
+                bbox=bbox,
+                texto_placa=texto_placa if texto_placa else "PLACA",
+                status_roubo=status_roubo if info_veiculo else None,
+                dados_veiculo=dict(info_veiculo) if info_veiculo else None
+            )
 
             if texto_placa:
                 resultados_placas.append({
                     "placa": texto_placa,
                     "padrao": padrao,
                     "metodo": metodo,
-                    "confianca": float(confianca_ocr),
+                    "confianca": float(confianca),
                     "crop_base64": crop_b64,
                     "info_veiculo": dict(info_veiculo) if info_veiculo else None
                 })
 
-        # 2. Desenha caixas e rótulos na imagem completa
-        img_anotada = desenhar_resultado(img, placas_detectadas)
+        # Codifica imagem anotada em Base64
         _, buffer_anotada = cv2.imencode(".jpg", img_anotada, [cv2.IMWRITE_JPEG_QUALITY, 85])
         img_anotada_b64 = "data:image/jpeg;base64," + base64.b64encode(buffer_anotada).decode("utf-8")
 
@@ -127,6 +140,8 @@ async def api_detectar(arquivo: UploadFile = File(...)):
         })
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return JSONResponse({"sucesso": False, "erro": str(e)}, status_code=500)
 
 @app.get("/api/veiculos")

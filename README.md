@@ -72,9 +72,11 @@ Os relatórios detalhados e gráficos gerados estão disponíveis na pasta [`rel
 
 ```
 sistema-identificacao-placas/
-├── apresentacao/                        # Apresentação executiva completa do projeto
+├── apresentacao/                        # Landing Page e Apresentação Executiva do Projeto
+│   ├── index.html                       # Landing Page Interativa de Produto (Tailwind CSS + Chart.js)
+│   ├── apresentacao_projeto_alpr.html   # Cópia direta para abertura imediata no navegador
 │   ├── apresentacao_projeto_alpr.pptx   # Slides em PowerPoint (Widescreen 16:9 editável)
-│   └── apresentacao_projeto_alpr.html   # Slides interativos Web (Tailwind CSS)
+│   └── etapas_pipeline/                 # 8 Imagens demonstrativas das etapas sem tarjas
 ├── colab/                               # Notebooks de treinamento (Google Colab)
 │   ├── treinamento_yolo_placas.ipynb            # Detector de placas (Open Images V7)
 │   ├── treinamento_yolo_caracteres.ipynb        # Detector de caracteres
@@ -98,7 +100,8 @@ sistema-identificacao-placas/
 │   ├── benchmark_placas_completo.xlsx
 │   └── benchmark_placas_completo.csv
 ├── scripts/
-│   ├── gerar_apresentacao.py            # Gerador dos slides PowerPoint e HTML
+│   ├── gerar_imagens_etapas_pipeline.py # Gera as 8 imagens isoladas das etapas do pipeline
+│   ├── gerar_apresentacao.py            # Gerador dos slides PowerPoint
 │   ├── gerar_graficos_yolo2.py          # Gerador dos gráficos de treino do YOLO 2
 │   ├── gerar_graficos_evolucao.py       # Gerador dos gráficos de evolução e comparativos
 │   └── gerar_benchmark_completo.py      # Script de teste em lote e geração de gráficos
@@ -136,17 +139,22 @@ No Windows, basta dar um duplo clique no arquivo [`iniciar_sistema.bat`](iniciar
 
 Ou execute manualmente via terminal:
 ```bash
-python -m uvicorn src.server:app --host 0.0.0.0 --port 8000 --reload
+python -m uvicorn src.server:app --host 127.0.0.1 --port 8000 --reload
 ```
 Acesse no seu navegador: **`http://localhost:8000`**
 
-### 3. Interface Legada (Streamlit)
+### 3. Visualizando a Landing Page de Apresentação
+Basta abrir diretamente no seu navegador o arquivo:
+- [`apresentacao/index.html`](apresentacao/index.html) ou [`apresentacao/apresentacao_projeto_alpr.html`](apresentacao/apresentacao_projeto_alpr.html)
+Apresenta gráficos interativos dinâmicos em **Chart.js**, visualizador em alta resolução de cada etapa do pipeline e toda a documentação da evolução do projeto.
+
+### 4. Interface Legada (Streamlit)
 Caso deseje rodar a versão anterior em Streamlit:
 ```bash
 streamlit run src/app.py
 ```
 
-### 4. Executando o Benchmark Completo
+### 5. Executando o Benchmark Completo
 Para reproduzir os testes com todas as imagens e recalcular os gráficos e planilhas:
 ```bash
 python scripts/gerar_benchmark_completo.py
