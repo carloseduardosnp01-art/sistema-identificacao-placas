@@ -8,11 +8,19 @@ opencv-python>=4.8.0
 Pillow>=9.5.0
 numpy>=1.24.0
 
-# Reconhecimento de Caracteres (OCR)
+# Reconhecimento de Caracteres (OCR e Pipeline Híbrido)
 easyocr>=1.7.0
 
-# Interface Gráfica
-streamlit>=1.30.0
+# Servidor Web Leve (FastAPI + Uvicorn)
+fastapi>=0.110.0
+uvicorn>=0.28.0
+python-multipart>=0.0.9
+jinja2>=3.1.3
 
-# Manipulação de Dados
+# Manipulação de Dados e Relatórios de Benchmark
 pandas>=2.0.0
+openpyxl>=3.1.2
+matplotlib>=3.8.0
+
+# Interface Legada (Opcional)
+streamlit>=1.30.0

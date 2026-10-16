@@ -1,53 +1,48 @@
 """
-Módulo de Reconhecimento de Placas e Caracteres (100% YOLO).
-Pipeline de 2 Estágios de Deep Learning:
-- Estágio 1: YOLO Detector de Placas (Localização e recorte)
-- Estágio 2: YOLO Detector de Caracteres (Tratamento P&B de Alto Contraste e Inferência de Letras/Números)
-Sem dependência de bibliotecas de OCR externas (EasyOCR, Tesseract).
+Módulo de OCR e Reconhecimento Híbrido de Placas (YOLO + EasyOCR Adaptativo).
+Combina o detector YOLO de caracteres com o EasyOCR alimentado por pré-processamento
+de alto contraste (CLAHE e Sharpen), garantindo máxima taxa de leitura.
 """
 
+import cv2
 import numpy as np
 from typing import Dict, Any, Optional
-from .caracteres import ReconhecedorCaracteresYOLO
+from .caracteres import ReconhecedorCaracteresYOLO, gerar_variacoes_alto_contraste
+from .utils import extrair_melhor_placa_de_texto, limpar_texto, tentar_corrigir_placa, classificar_padrao_placa
+from .desambiguacao import refinar_placa_completa
 
 _reconhecedor_yolo = None
+_leitor_easyocr = None
 
 
 def obter_reconhecedor_yolo() -> ReconhecedorCaracteresYOLO:
-    """Inicializa e retorna a instância singleton do reconhecedor de caracteres YOLO 2."""
+    """Inicializa e retorna o singleton do reconhecedor YOLO de caracteres."""
     global _reconhecedor_yolo
     if _reconhecedor_yolo is None:
         _reconhecedor_yolo = ReconhecedorCaracteresYOLO()
     return _reconhecedor_yolo
 
 
-def extrair_texto_placa(img_placa: np.ndarray, confianca_minima: float = 0.15) -> Dict[str, Any]:
-    """
-    Executa a identificação dos caracteres da placa (Estágio 2 100% YOLO):
-    1. Recebe o recorte da placa do Estágio 1
-    2. Aplica o tratamento de Preto e Branco com Alto Contraste (Otsu)
-    3. Executa a inferência direta no modelo YOLO 2 de caracteres
-    4. Retorna texto identificado, padrão CONTRAN, confiança e imagem tratada com caixas
-    """
-    if img_placa is None or img_placa.size == 0:
-        return {
-            "texto_bruto": "",
-            "texto_corrigido": "",
-            "padrao": None,
-            "confianca": 0.0,
-            "caixas_caracteres": [],
-            "img_processada": None
-        }
+def obter_leitor_easyocr():
+    """Inicializa em cache o leitor EasyOCR em português e inglês."""
+    global _leitor_easyocr
+    if _leitor_easyocr is None:
+        try:
+            import easyocr
+            print("[OCR Híbrido] Carregando motor EasyOCR...")
+            _leitor_easyocr = easyocr.Reader(['en', 'pt'], gpu=False)
+        except Exception as e:
+            print(f"[OCR Híbrido] Aviso: EasyOCR não disponível: {e}")
+            _leitor_easyocr = None
+    return _leitor_easyocr
 
-    yolo_char = obter_reconhecedor_yolo()
-    if yolo_char and yolo_char.disponivel:
-        return yolo_char.reconhecer(img_placa, confianca_minima=confianca_minima)
 
-    return {
-        "texto_bruto": "",
-        "texto_corrigido": "",
-        "padrao": None,
-        "confianca": 0.0,
-        "caixas_caracteres": [],
-        "img_processada": None
-    }
+def extrair_texto_placa(img_placa: np.ndarray, confianca_minima: float = 0.12) -> Dict[str, Any]:
+    """
+    Pipeline de Extração Híbrida Inteligente V2:
+    Delega diretamente para o pipeline misto de alta acurácia com retificação geométrica (Deskew),
+    consenso estrito CONTRAN e EasyOCR multi-contraste adaptativo.
+    """
+    from .pipeline_misto import executar_pipeline_misto
+    return executar_pipeline_misto(img_placa)
+

@@ -5,10 +5,9 @@ venv/
 .env
 .vscode/
 
-# Modelos pesados do YOLO (salvos localmente ou via Drive/Colab)
+# Modelos pesados do YOLO
 *.pt
 models/*.pt
-# Modelos necessarios para o sistema funcionar apos o clone (~6 MB cada)
 !models/best.pt
 !models/detector_caracteres.pt
 runs/
@@ -19,4 +18,21 @@ data/*.db
 # Caches
 .pytest_cache/
 .streamlit/
-.agents/
+.agents/
+
+# Imagens de teste e debug locais
+*.png
+*.jpg
+*.jpeg
+data/fotos_drive/
+data/drive_fotos/
+data/comparativo_*/
+data/diagnostico_*/
+data/experimento_*/
+data/inspecao_*/
+data/resultados_*/
+data/*.jpg
+data/*.png
+
+# Mantém os gráficos e relatórios solicitados
+!relatorios_benchmark/*.png

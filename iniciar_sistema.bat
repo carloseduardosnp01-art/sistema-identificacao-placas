@@ -1,9 +1,10 @@
 @echo off
 setlocal
-title Sistema de Identificacao de Placas
+title Sistema de Identificacao de Placas - Web Fast
 
 echo ========================================================
 echo   Iniciando o Sistema de Identificacao de Placas...
+echo   Interface Web Moderna (FastAPI + Tailwind CSS)
 echo ========================================================
 echo.
 
@@ -35,10 +36,10 @@ if exist "venv\Scripts\activate.bat" (
     set "PY=python"
 )
 
-rem Verifica se o Streamlit esta instalado; se nao, instala as dependencias
-%PY% -c "import streamlit" >nul 2>&1
+rem Verifica se o FastAPI e Uvicorn estao instalados; se nao, instala as dependencias
+%PY% -c "import fastapi, uvicorn" >nul 2>&1
 if errorlevel 1 (
-    echo Streamlit nao encontrado. Instalando dependencias...
+    echo Dependencias web nao encontradas. Instalando requirements.txt...
     %PY% -m pip install -r requirements.txt
     if errorlevel 1 (
         echo [ERRO] Falha ao instalar as dependencias.
@@ -47,19 +48,20 @@ if errorlevel 1 (
     )
 )
 
-set "PORTA=8501"
+set "PORTA=8000"
 set "URL=http://localhost:%PORTA%"
 
-echo Iniciando servidor Streamlit em %URL%
+echo.
+echo Iniciando servidor Web FastAPI em %URL%
 echo O navegador sera aberto automaticamente em instantes.
-echo Para encerrar, feche esta janela ou pressione Ctrl+C.
+echo Para encerrar o servidor, feche esta janela ou pressione Ctrl+C.
 echo.
 
-rem Abre o navegador apos alguns segundos, com o servidor ja de pe
-start "" /min cmd /c "timeout /t 8 /nobreak >nul & start "" %URL%"
+rem Abre o navegador apos 3 segundos quando o servidor subir
+start "" /min cmd /c "timeout /t 3 /nobreak >nul & start "" %URL%"
 
-rem headless evita que o Streamlit abra uma segunda aba por conta propria
-%PY% -m streamlit run src/app.py --server.port %PORTA% --server.headless true --browser.gatherUsageStats false
+rem Executa o servidor FastAPI com Uvicorn
+%PY% -m uvicorn src.server:app --host 0.0.0.0 --port %PORTA% --reload
 
 if errorlevel 1 (
     echo.

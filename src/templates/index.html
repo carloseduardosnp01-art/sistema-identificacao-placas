@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VisionALPR - Sistema de Identificação de Placas</title>
+  <!-- Google Fonts & Tailwind CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+            },
+            dark: {
+              900: '#0f172a',
+              800: '#1e293b',
+              700: '#334155',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .placa-mercosul {
+      background: #ffffff;
+      border: 3px solid #000000;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+    .tarja-mercosul {
+      background: #003399;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 11px;
+      letter-spacing: 2px;
+      padding: 2px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .texto-placa {
+      font-family: monospace;
+      font-weight: 800;
+      color: #000000;
+      letter-spacing: 6px;
+    }
+  </style>
+</head>
+<body class="bg-[#0b1120] text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Header / Navbar -->
+  <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+        </div>
+        <div>
+          <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">VisionALPR</span>
+          <span class="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">2.0 Ultraleve</span>
+        </div>
+      </div>
+
+      <!-- Abas de Navegação -->
+      <nav class="flex space-x-1 sm:space-x-2">
+        <button onclick="trocarAba('analise')" id="btn-aba-analise" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-emerald-500 text-white shadow-lg shadow-emerald-500/25">
+          Identificação por Foto
+        </button>
+        <button onclick="trocarAba('veiculos')" id="btn-aba-veiculos" class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+          Base de Veículos
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Conteúdo Principal -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- SEÇÃO 1: IDENTIFICAÇÃO POR FOTO -->
+    <div id="secao-analise" class="space-y-8">
+      
+      <!-- Upload e Dropzone -->
+      <div class="glass-card rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+        <div class="absolute -right-20 -top-20 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="max-w-2xl mx-auto text-center space-y-4">
+          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">Detecção e Leitura Automática de Placas</h2>
+          <p class="text-sm text-slate-400">Faça upload de uma foto veicular para detecção instantânea via YOLO, OCR adaptativo e checagem no banco de segurança.</p>
+
+          <form id="form-upload" class="pt-4">
+            <label for="input-foto" class="flex flex-col items-center justify-center border-2 border-dashed border-slate-700 hover:border-emerald-500/60 bg-slate-900/50 hover:bg-slate-900/80 rounded-2xl p-8 cursor-pointer transition-all group">
+              <div class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-emerald-400 group-hover:scale-110 transition-all mb-4">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <p class="text-base font-semibold text-slate-200"><span class="text-emerald-400">Clique para carregar</span> ou arraste a imagem</p>
+              <p class="text-xs text-slate-500 mt-1">Formatos suportados: JPEG, JPG, PNG (resolução recomendada até 4K)</p>
+              <input id="input-foto" type="file" name="foto" accept="image/*" class="hidden" onchange="processarUpload()">
+            </label>
+          </form>
+
+          <!-- Loading Spinner -->
+          <div id="loader" class="hidden py-6 text-center space-y-3">
+            <div class="inline-block animate-spin rounded-full h-9 w-9 border-t-2 border-b-2 border-emerald-500"></div>
+            <p class="text-sm font-medium text-emerald-400 animate-pulse">Executando Pipeline ALPR...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Painel de Resultados (Oculto inicialmente) -->
+      <div id="painel-resultados" class="hidden space-y-6">
+        
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div>
+            <h3 class="text-xl font-bold text-white">Resultado do Reconhecimento</h3>
+            <p id="subtitulo-tempo" class="text-xs text-slate-400">Tempo de inferência: 0.0s</p>
+          </div>
+          <span id="badge-total" class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300">0 placa(s) detectada(s)</span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <!-- Coluna Imagem Anotada -->
+          <div class="lg:col-span-7 glass-card rounded-2xl p-4 flex flex-col items-center justify-center">
+            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 w-full text-left">Detecção em Cena</h4>
+            <div class="relative w-full rounded-xl overflow-hidden bg-black/40 flex items-center justify-center min-h-[350px]">
+              <img id="img-anotada" src="" alt="Imagem Anotada" class="max-h-[500px] w-auto object-contain rounded-lg shadow-lg">
+            </div>
+          </div>
+
+          <!-- Coluna Placas Identificadas e Status -->
+          <div class="lg:col-span-5 space-y-4 flex flex-col justify-start" id="lista-cards-placas">
+            <!-- Cards de placas injetados via JS -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- SEÇÃO 2: BASE DE VEÍCULOS E CONSULTA -->
+    <div id="secao-veiculos" class="hidden space-y-8">
+      
+      <!-- Topo: Cadastro Rápido e Busca -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Formulário de Cadastro -->
+        <div class="glass-card rounded-2xl p-6 space-y-4">
+          <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+            <span>➕</span> <span>Cadastrar Veículo</span>
+          </h3>
+          <p class="text-xs text-slate-400">Adicione veículos para simulação de alerta imediato de roubo ou fiscalização.</p>
+
+          <form id="form-cadastrar" onsubmit="salvarVeiculo(event)" class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Placa (7 caracteres)</label>
+              <input type="text" id="cad-placa" required maxlength="7" placeholder="Ex: BRA2E19" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white uppercase focus:outline-none focus:border-emerald-500 font-mono font-bold">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Marca</label>
+                <input type="text" id="cad-marca" required placeholder="Ex: Toyota" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Modelo</label>
+                <input type="text" id="cad-modelo" required placeholder="Ex: Corolla" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Cor</label>
+                <input type="text" id="cad-cor" required placeholder="Ex: Prata" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Ano</label>
+                <input type="number" id="cad-ano" required min="1950" max="2030" placeholder="2022" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Status de Segurança</label>
+              <select id="cad-status" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                <option value="0">Situação Regular (Sem Ocorrência)</option>
+                <option value="1">🚨 Veículo Roubado / Furtado</option>
+              </select>
+            </div>
+            <button type="submit" class="w-full py-2.5 rounded-lg text-sm font-semibold bg-emerald-500 hover:bg-emerald-600 text-white transition-all shadow-lg shadow-emerald-500/20">
+              Salvar Veículo
+            </button>
+          </form>
+        </div>
+
+        <!-- Tabela de Veículos Cadastrados -->
+        <div class="lg:col-span-2 glass-card rounded-2xl p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+              <span>🗄️</span> <span>Base de Dados Policial / Segurança</span>
+            </h3>
+            <button onclick="carregarListaVeiculos()" class="text-xs text-emerald-400 hover:underline flex items-center space-x-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              <span>Atualizar</span>
+            </button>
+          </div>
+
+          <div class="overflow-x-auto max-h-[420px] rounded-xl border border-slate-800">
+            <table class="w-full text-left text-sm text-slate-300">
+              <thead class="text-xs uppercase bg-slate-900/90 text-slate-400 sticky top-0">
+                <tr>
+                  <th class="px-4 py-3">Placa</th>
+                  <th class="px-4 py-3">Veículo</th>
+                  <th class="px-4 py-3">Cor / Ano</th>
+                  <th class="px-4 py-3">Situação</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-veiculos-body" class="divide-y divide-slate-800/60 font-sans">
+                <!-- Linhas inseridas via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
+    VisionALPR &copy; 2026 — Inteligência Artificial & Visão Computacional aplicada à Segurança Pública.
+  </footer>
+
+  <!-- Scripts Frontend -->
+  <script>
+    function trocarAba(aba) {
+      const secaoAnalise = document.getElementById('secao-analise');
+      const secaoVeiculos = document.getElementById('secao-veiculos');
+      const btnAnalise = document.getElementById('btn-aba-analise');
+      const btnVeiculos = document.getElementById('btn-aba-veiculos');
+
+      if (aba === 'analise') {
+        secaoAnalise.classList.remove('hidden');
+        secaoVeiculos.classList.add('hidden');
+        btnAnalise.className = 'px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-emerald-500 text-white shadow-lg shadow-emerald-500/25';
+        btnVeiculos.className = 'px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all';
+      } else {
+        secaoAnalise.classList.add('hidden');
+        secaoVeiculos.classList.remove('hidden');
+        btnVeiculos.className = 'px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-emerald-500 text-white shadow-lg shadow-emerald-500/25';
+        btnAnalise.className = 'px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all';
+        carregarListaVeiculos();
+      }
+    }
+
+    async function processarUpload() {
+      const fileInput = document.getElementById('input-foto');
+      if (!fileInput.files || fileInput.files.length === 0) return;
+
+      const file = fileInput.files[0];
+      const formData = new FormData();
+      formData.append('arquivo', file);
+
+      const loader = document.getElementById('loader');
+      const painel = document.getElementById('painel-resultados');
+
+      loader.classList.remove('hidden');
+      painel.classList.add('hidden');
+
+      try {
+        const resp = await fetch('/api/detectar', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await resp.json();
+        loader.classList.add('hidden');
+
+        if (!data.sucesso) {
+          alert('Erro no processamento: ' + (data.erro || 'Falha desconhecida'));
+          return;
+        }
+
+        renderizarResultados(data);
+      } catch (err) {
+        loader.classList.add('hidden');
+        alert('Erro ao conectar ao servidor: ' + err.message);
+      }
+    }
+
+    function renderizarResultados(data) {
+      const painel = document.getElementById('painel-resultados');
+      const imgAnotada = document.getElementById('img-anotada');
+      const subtituloTempo = document.getElementById('subtitulo-tempo');
+      const badgeTotal = document.getElementById('badge-total');
+      const listaCards = document.getElementById('lista-cards-placas');
+
+      imgAnotada.src = data.imagem_anotada;
+      subtituloTempo.textContent = `Tempo de inferência: ${data.tempo_segundos}s | YOLO Detecção + OCR`;
+      badgeTotal.textContent = `${data.total_placas} placa(s) encontrada(s)`;
+
+      listaCards.innerHTML = '';
+
+      if (data.placas.length === 0) {
+        listaCards.innerHTML = `
+          <div class="glass-card rounded-xl p-6 text-center text-slate-400">
+            <p class="text-base font-semibold text-slate-300">Nenhuma placa legível identificada</p>
+            <p class="text-xs mt-1">Tente aproximar o ângulo ou melhorar a iluminação da imagem.</p>
+          </div>
+        `;
+      } else {
+        data.placas.forEach((p, idx) => {
+          const seguro = p.info_veiculo ? (p.info_veiculo.status_roubo === 0) : true;
+          const statusHtml = p.info_veiculo ? (
+            p.info_veiculo.status_roubo === 1 ? `
+              <div class="mt-3 p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start space-x-3">
+                <span class="text-xl">🚨</span>
+                <div>
+                  <p class="text-xs font-bold text-red-400 uppercase tracking-wide">ALERTA: VEÍCULO ROUBADO / FURTADO</p>
+                  <p class="text-xs text-slate-300 mt-0.5">${p.info_veiculo.marca} ${p.info_veiculo.modelo} (${p.info_veiculo.ano}) - ${p.info_veiculo.cor}</p>
+                  <p class="text-[11px] text-slate-400 mt-0.5">B.O.: ${p.info_veiculo.boletim_ocorrencia || 'N/A'} | ${p.info_veiculo.cidade || ''}/${p.info_veiculo.estado || ''}</p>
+                </div>
+              </div>
+            ` : `
+              <div class="mt-3 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center space-x-2">
+                <span class="text-emerald-400 text-sm">✅</span>
+                <span class="text-xs font-medium text-emerald-300">Situação Regular (${p.info_veiculo.marca} ${p.info_veiculo.modelo} - ${p.info_veiculo.cor})</span>
+              </div>
+            `
+          ) : `
+            <div class="mt-3 p-2 rounded-lg bg-slate-800/50 text-[11px] text-slate-400">
+              ℹ️ Placa não cadastrada na base de segurança local.
+            </div>
+          `;
+
+          const card = document.createElement('div');
+          card.className = 'glass-card rounded-2xl p-5 border ' + (p.info_veiculo && p.info_veiculo.status_roubo === 1 ? 'border-red-500/40 bg-red-950/20' : 'border-slate-800');
+          card.innerHTML = `
+            <div class="flex items-center justify-between">
+              <!-- Placa Estilizada Mercosul -->
+              <div class="placa-mercosul w-44">
+                <div class="tarja-mercosul">
+                  <span>BRASIL</span>
+                  <span class="text-[9px]">BR</span>
+                </div>
+                <div class="text-center py-1.5 bg-white">
+                  <span class="texto-placa text-lg">${p.placa}</span>
+                </div>
+              </div>
+
+              <!-- Crop da Placa -->
+              <div class="text-right">
+                <img src="${p.crop_base64}" alt="Crop da Placa" class="h-12 w-auto object-cover rounded border border-slate-700 shadow">
+                <span class="text-[10px] text-slate-400 block mt-1">Confiança: ${(p.confianca * 100).toFixed(0)}%</span>
+              </div>
+            </div>
+
+            <div class="mt-3 flex items-center justify-between text-xs text-slate-400 border-t border-slate-800/80 pt-2">
+              <span>Padrão: <strong class="text-slate-200">${p.padrao}</strong></span>
+              <span>Método: <strong class="text-slate-200">${p.metodo}</strong></span>
+            </div>
+
+            ${statusHtml}
+          `;
+          listaCards.appendChild(card);
+        });
+      }
+
+      painel.classList.remove('hidden');
+    }
+
+    async function carregarListaVeiculos() {
+      try {
+        const resp = await fetch('/api/veiculos');
+        const data = await resp.json();
+        const tbody = document.getElementById('tabela-veiculos-body');
+        tbody.innerHTML = '';
+
+        if (!data.veiculos || data.veiculos.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-center text-slate-500">Nenhum veículo cadastrado.</td></tr>';
+          return;
+        }
+
+        data.veiculos.forEach(v => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-800/40 transition-colors';
+          tr.innerHTML = `
+            <td class="px-4 py-3 font-mono font-bold text-white">${v.placa}</td>
+            <td class="px-4 py-3">${v.marca} ${v.modelo}</td>
+            <td class="px-4 py-3 text-slate-400">${v.cor} / ${v.ano}</td>
+            <td class="px-4 py-3">
+              ${v.status_roubo === 1 ?
+                '<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">ROUBADO/FURTADO</span>' :
+                '<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-400">REGULAR</span>'
+              }
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error('Erro ao buscar lista de veículos:', err);
+      }
+    }
+
+    async function salvarVeiculo(e) {
+      e.preventDefault();
+      const placa = document.getElementById('cad-placa').value.trim().toUpperCase();
+      const marca = document.getElementById('cad-marca').value.trim();
+      const modelo = document.getElementById('cad-modelo').value.trim();
+      const cor = document.getElementById('cad-cor').value.trim();
+      const ano = parseInt(document.getElementById('cad-ano').value);
+      const status_roubo = parseInt(document.getElementById('cad-status').value);
+
+      try {
+        const resp = await fetch('/api/veiculos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ placa, marca, modelo, cor, ano, status_roubo })
+        });
+        const res = await resp.json();
+        if (res.sucesso) {
+          alert('Veículo cadastrado com sucesso!');
+          document.getElementById('form-cadastrar').reset();
+          carregarListaVeiculos();
+        } else {
+          alert('Erro ao cadastrar: ' + (res.erro || 'Falha'));
+        }
+      } catch (err) {
+        alert('Erro de conexão: ' + err.message);
+      }
+    }
+
+    // Inicializa carregando a lista na inicialização
+    carregarListaVeiculos();
+  </script>
+</body>
+</html>

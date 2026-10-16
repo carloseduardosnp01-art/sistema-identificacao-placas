@@ -1,6 +1,6 @@
 # 🚗 Sistema de Identificação de Placas e Consulta de Veículos Roubados
 
-Sistema completo de Reconhecimento Automático de Placas Veiculares (**ALPR/LPR**) com inteligência artificial, usando um **pipeline duplo YOLO** (detecção da placa + reconhecimento de caracteres) e consulta instantânea em base de dados de veículos com queixa de **roubo ou furto**.
+Sistema completo de Reconhecimento Automático de Placas Veiculares (**ALPR/LPR**) com inteligência artificial, utilizando arquitetura web ultraleve e de alta performance (**FastAPI + Tailwind CSS**) e um **Pipeline Híbrido de Alto Desempenho** (Detecção YOLO + Reconhecimento Morfológico com Fusão de OCR e YOLO Caracteres), integrado à base de dados para consulta instantânea de veículos com queixa de **roubo ou furto**.
 
 ---
 
@@ -15,20 +15,52 @@ Sistema completo de Reconhecimento Automático de Placas Veiculares (**ALPR/LPR*
 ## 🏗️ Arquitetura do Sistema
 
 ```
-[Foto / Imagem do Veículo]
+[Foto / Imagem do Veículo (Upload ou Câmera)]
            ↓
- 1. Estágio 1 – Detecção da Placa (YOLO: models/detector_placas.pt)
-           ↓ (Recorte da Bounding Box)
- 2. Pré-processamento P&B de alto contraste (cinza + mediana + Otsu)
+ 1. Estágio 1 – Detecção das Placas (YOLO: models/detector_placas.pt)
+           ↓ (Recorte de alta precisão da Bounding Box)
+ 2. Pré-processamento & Retificação (Deskew morfológico + 4 variantes de contraste)
            ↓
- 3. Estágio 2 – Reconhecimento de Caracteres (YOLO: models/detector_caracteres.pt, classes 0-9 / A-Z)
-           ↓ (Ordenação, validação e correção: BRA2E19 ou ABC1234)
- 4. Validação Regex (Mercosul/Antiga) & Consulta ao Banco SQLite
+ 3. Estágio 2 – Pipeline Híbrido de Caracteres (src/pipeline_misto.py)
+           ├─ YOLO Caracteres (models/detector_caracteres.pt)
+           ├─ EasyOCR especializado com desambiguação morfológica FE-Schrift
+           └─ Votação por Confiança caractere a caractere com correção sintática
            ↓
- 5. Interface Gráfica (Streamlit) com Alerta de Segurança (🚨 Roubado / ✅ Regular)
+ 4. Validação Regex (Padrão Mercosul [ABC1D23] e Cinza Tradicional [ABC1234])
+           ↓
+ 5. Consulta Instantânea ao Banco de Dados SQLite (data/veiculos.db)
+           ↓
+ 6. Interface Web Moderna (FastAPI + Tailwind CSS) com Alerta de Segurança (🚨 Roubado / ✅ Regular)
 ```
 
-O módulo `src/ocr.py` (EasyOCR + desambiguação morfológica para a fonte FE-Schrift) permanece disponível como método alternativo.
+---
+
+## ⚡ Nova Interface Web Ultraleve (FastAPI + Tailwind CSS)
+
+Substituindo frameworks monolíticos pesados que recarregavam todo o script a cada requisição, a nova base do sistema foi reconstruída sobre **FastAPI** e **Uvicorn**:
+- **Consumo de Memória Reduzido:** Os modelos neurais permanecem carregados em memória na inicialização do servidor.
+- **Inferência Instantânea:** Requisições assíncronas via `POST /api/detectar` com processamento em tempo real.
+- **Design Moderno:** Interface responsiva com Glassmorphism, Tailwind CSS, badge de leitura estilizado no padrão Mercosul e feedback em tempo real.
+- **Gestão de Banco de Dados Integrada:** Adicione e consulte veículos regulares ou roubados diretamente pela interface.
+
+---
+
+## 📊 Relatórios de Benchmark e Métricas de Precisão
+
+O sistema foi validado em um teste cego de ponta a ponta sobre as 71 imagens reais do conjunto do Google Drive (fotos de tráfego, estacionamento, dia/noite e múltiplas placas):
+
+| Métrica | Resultado Consolidado |
+| :--- | :--- |
+| **Total de Imagens Testadas** | 71 |
+| **Total de Placas Esperadas (Gabarito)** | 85 placas |
+| **Placas com Acerto Exato (100% dos 7 caracteres)** | **76 (89,41%)** |
+| **Divergências / Placas ilegíveis no fundo** | 9 (10,59%) |
+| **Tempo Médio por Imagem** | ~27 segundos |
+
+Os relatórios detalhados e gráficos gerados estão disponíveis na pasta [`relatorios_benchmark/`](relatorios_benchmark/):
+- **Planilha Completa Excel:** [`relatorios_benchmark/benchmark_placas_completo.xlsx`](relatorios_benchmark/benchmark_placas_completo.xlsx)
+- **Planilha CSV:** [`relatorios_benchmark/benchmark_placas_completo.csv`](relatorios_benchmark/benchmark_placas_completo.csv)
+- **Gráfico Comparativo de Desempenho:** [`relatorios_benchmark/benchmark_grafico_precisao.png`](relatorios_benchmark/benchmark_grafico_precisao.png)
 
 ---
 
@@ -41,29 +73,35 @@ sistema-identificacao-placas/
 │   ├── treinamento_yolo_caracteres.ipynb        # Detector de caracteres
 │   ├── treinamento_yolo_caracteres_ufpr.ipynb   # Caracteres com dataset UFPR
 │   └── treinamento_yolo_ufpr_alpr.ipynb         # Pipeline UFPR-ALPR
-├── src/
-│   ├── detector.py                      # Estágio 1: detecção de placas com YOLO
-│   ├── caracteres.py                    # Estágio 2: tratamento P&B e YOLO de caracteres
-│   ├── ocr.py                           # OCR alternativo (EasyOCR + heurísticas)
-│   ├── database.py                      # Conexão SQLite e consulta de veículos
-│   ├── utils.py                         # Validação Regex, correção e renderização
-│   └── app.py                           # Interface web com Streamlit
 ├── data/
+│   ├── fotos_drive/                     # Conjunto de 71 imagens reais para validação
 │   └── veiculos.db                      # Banco SQLite de veículos e ocorrências
 ├── models/
 │   ├── README.md                        # Instruções sobre os pesos
 │   ├── detector_placas.pt               # Pesos do detector de placas
 │   └── detector_caracteres.pt           # Pesos do detector de caracteres
+├── relatorios_benchmark/                # Planilhas (.xlsx, .csv) e gráficos de acurácia
+│   ├── benchmark_placas_completo.xlsx
+│   ├── benchmark_placas_completo.csv
+│   └── benchmark_grafico_precisao.png
+├── scripts/
+│   └── gerar_benchmark_completo.py      # Script de teste em lote e geração de gráficos
+├── src/
+│   ├── server.py                        # Servidor Web assíncrono FastAPI
+│   ├── templates/index.html             # Interface web moderna com Tailwind CSS
+│   ├── detector.py                      # Estágio 1: detecção de placas com YOLO
+│   ├── caracteres.py                    # Estágio 2: tratamento e YOLO de caracteres
+│   ├── pipeline_misto.py                # Pipeline Híbrido (YOLO + OCR ponderado)
+│   ├── ocr.py                           # Módulo OCR alternativo
+│   ├── database.py                      # Conexão SQLite e consulta de veículos
+│   ├── utils.py                         # Validação Regex, correção e anotação visual
+│   └── app.py                           # Interface legada em Streamlit
 ├── tests/
 │   ├── test_modulos.py                  # Testes unitários (validação e banco)
-│   └── test_images/                     # Imagens de teste
-├── train_caracteres.py                  # Treino local do YOLO de caracteres (Roboflow/local)
-├── copiar_modelo.py                     # Copia pesos treinados para models/
-├── calibrar_ocr.py                      # Calibração fina dos parâmetros do EasyOCR
-├── baixar_benchmark.py / baixar_exemplos.py / extrair_amostras_benchmark.py
-├── test_pipeline.py / test_segmentacao.py / test_deskew.py   # Scripts de teste do pipeline
-├── iniciar_sistema.bat / rodar.bat      # Atalhos para iniciar a aplicação no Windows
-├── requirements.txt                     # Dependências
+│   └── test_images/                     # Imagens sintéticas de teste
+├── iniciar_sistema.bat                  # Executável 1-clique para iniciar o servidor Web
+├── rodar.bat                            # Atalho rápido para iniciar_sistema.bat
+├── requirements.txt                     # Dependências do projeto
 └── README.md
 ```
 
@@ -72,27 +110,29 @@ sistema-identificacao-placas/
 ## 🚀 Como Executar o Projeto
 
 ### 1. Instalação das Dependências
+Certifique-se de ter o Python 3.10+ instalado e execute:
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Treinamento dos Modelos
-- **Detector de placas:** execute [`colab/treinamento_yolo_placas.ipynb`](colab/treinamento_yolo_placas.ipynb) no Google Colab (GPU T4) e salve o resultado em `models/detector_placas.pt`.
-- **Detector de caracteres:** use um dos notebooks `colab/treinamento_yolo_caracteres*.ipynb` ou treine localmente:
-  ```bash
-  python train_caracteres.py
-  ```
-  Em seguida, `python copiar_modelo.py` copia o peso treinado para `models/detector_caracteres.pt`.
+### 2. Executando a Interface Web
+No Windows, basta dar um duplo clique no arquivo [`iniciar_sistema.bat`](iniciar_sistema.bat) ou [`rodar.bat`](rodar.bat).
 
-### 3. Executando a Aplicação Web
-No Windows, basta dar duplo clique em `iniciar_sistema.bat` (ou `rodar.bat`). Manualmente:
+Ou execute manualmente via terminal:
+```bash
+python -m uvicorn src.server:app --host 0.0.0.0 --port 8000 --reload
+```
+Acesse no seu navegador: **`http://localhost:8000`**
+
+### 3. Interface Legada (Streamlit)
+Caso deseje rodar a versão anterior em Streamlit:
 ```bash
 streamlit run src/app.py
 ```
-Acesse: `http://localhost:8501`.
 
-### 4. Executando os Testes
+### 4. Executando o Benchmark Completo
+Para reproduzir os testes com todas as imagens e recalcular os gráficos e planilhas:
 ```bash
-python tests/test_modulos.py
-python test_pipeline.py
+python scripts/gerar_benchmark_completo.py
 ```
+Os novos relatórios serão salvos automaticamente na pasta `relatorios_benchmark/`.

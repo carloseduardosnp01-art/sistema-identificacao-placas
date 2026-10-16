@@ -48,7 +48,8 @@ NUMERO_PARA_LETRA = {
 RUIDOS_CONHECIDOS = [
     "BRASIL", "BRAS1L", "8RAS1L", "8RA61L", "RA61L", "MERCOSUR", "MERCOSUL", 
     "CLSIL", "CASIL", "JAASIL", "WSE", "JSE", "QUS", "OASL", "OAS4", "BASIL", 
-    "BASII", "02C", "IBR", "ESIL", "ESL4"
+    "BASII", "02C", "IBR", "ESIL", "ESL4", "ORASIL", "ORAS1L", "RASIL", "RAS1L",
+    "VASIL", "VAS1L"
 ]
 
 
@@ -63,11 +64,8 @@ def limpar_texto(texto: str) -> str:
     t = t.replace("KB", "W").replace("VV", "W").replace("UU", "W").replace("UX", "W")
     t = re.sub(r"[^A-Za-z0-9]", "", t)
 
-    # Remove prefixo de país 'BR' ou 'IBR' quando colado na placa
-    if t.startswith("BR") and len(t) >= 9:
-        t = t[2:]
-    elif t.startswith("IBR") and len(t) >= 10:
-        t = t[3:]
+    # Remove prefixo de país 'BR', 'IBR', 'U2BR', etc., quando colado na frente da placa
+    t = re.sub(r'^[A-Z0-9]{0,3}BR', '', t)
 
     return t
 

@@ -1,0 +1,161 @@
+"""
+Servidor Web Ultraleve com FastAPI e Uvicorn para o Sistema de Identificação de Placas.
+Substitui o Streamlit oferecendo carregamento instantâneo, baixo consumo de memória
+e interface visual moderna via Tailwind CSS / Glassmorphism.
+"""
+
+import os
+import sys
+import time
+import base64
+import cv2
+import numpy as np
+from pathlib import Path
+from typing import Dict, Any, List
+from fastapi import FastAPI, UploadFile, File, Form, Request, HTTPException
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
+
+# Configurações de diretórios
+BASE_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE_DIR))
+
+from src.detector import DetectorPlacas
+from src.ocr import extrair_texto_placa
+from src.database import (
+    inicializar_banco,
+    consultar_placa,
+    cadastrar_veiculo,
+    listar_veiculos,
+    normalizar_placa
+)
+from src.utils import desenhar_resultado
+
+# Inicializa banco de dados SQLite
+inicializar_banco()
+
+app = FastAPI(title="VisionALPR API", description="Sistema de Identificação de Placas e Segurança Veicular")
+
+# Configuração de templates e estáticos
+templates_dir = os.path.join(os.path.dirname(__file__), "templates")
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+templates = Jinja2Templates(directory=templates_dir)
+
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+# Carrega detector YOLO na inicialização do serviço
+detector = DetectorPlacas()
+
+class VeiculoInput(BaseModel):
+    placa: str
+    marca: str
+    modelo: str
+    cor: str
+    ano: int
+    status_roubo: int = 0
+    data_ocorrencia: str = None
+    boletim_ocorrencia: str = None
+    cidade: str = None
+    estado: str = None
+
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    """Renderiza a interface web moderna e ultraleve."""
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.post("/api/detectar")
+async def api_detectar(arquivo: UploadFile = File(...)):
+    """Recebe uma foto, executa detecção YOLO, OCR e consulta de segurança."""
+    try:
+        t_inicio = time.time()
+        conteudo = await arquivo.read()
+        nparr = np.frombuffer(conteudo, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        if img is None:
+            raise HTTPException(status_code=400, detail="Arquivo de imagem inválido.")
+
+        # 1. Detecção YOLO
+        placas_detectadas = detector.detectar(img, confianca_minima=0.20)
+        
+        resultados_placas = []
+        for p in placas_detectadas:
+            crop = p["crop"]
+            res_ocr = extrair_texto_placa(crop)
+            texto_placa = res_ocr.get("texto_corrigido") or ""
+            confianca_ocr = res_ocr.get("confianca", 0.0)
+            padrao = res_ocr.get("padrao", "Desconhecido")
+            metodo = res_ocr.get("metodo", "N/A")
+
+            # Codifica crop em Base64 para exibição rápida no frontend
+            _, buffer_crop = cv2.imencode(".jpg", crop)
+            crop_b64 = "data:image/jpeg;base64," + base64.b64encode(buffer_crop).decode("utf-8")
+
+            # Consulta no banco de dados de segurança
+            info_veiculo = consultar_placa(texto_placa) if texto_placa else None
+
+            p["texto"] = texto_placa
+            p["info_veiculo"] = info_veiculo
+            p["padrao"] = padrao
+
+            if texto_placa:
+                resultados_placas.append({
+                    "placa": texto_placa,
+                    "padrao": padrao,
+                    "metodo": metodo,
+                    "confianca": float(confianca_ocr),
+                    "crop_base64": crop_b64,
+                    "info_veiculo": dict(info_veiculo) if info_veiculo else None
+                })
+
+        # 2. Desenha caixas e rótulos na imagem completa
+        img_anotada = desenhar_resultado(img, placas_detectadas)
+        _, buffer_anotada = cv2.imencode(".jpg", img_anotada, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        img_anotada_b64 = "data:image/jpeg;base64," + base64.b64encode(buffer_anotada).decode("utf-8")
+
+        tempo_total = time.time() - t_inicio
+
+        return JSONResponse({
+            "sucesso": True,
+            "tempo_segundos": f"{tempo_total:.2f}",
+            "total_placas": len(resultados_placas),
+            "imagem_anotada": img_anotada_b64,
+            "placas": resultados_placas
+        })
+
+    except Exception as e:
+        return JSONResponse({"sucesso": False, "erro": str(e)}, status_code=500)
+
+@app.get("/api/veiculos")
+async def api_listar_veiculos():
+    """Retorna todos os veículos cadastrados na base SQLite."""
+    veiculos = listar_veiculos()
+    return {"veiculos": [dict(v) for v in veiculos]}
+
+@app.post("/api/veiculos")
+async def api_cadastrar_veiculo(veiculo: VeiculoInput):
+    """Cadastra ou atualiza um veículo na base de dados de segurança."""
+    sucesso = cadastrar_veiculo(
+        placa=veiculo.placa,
+        marca=veiculo.marca,
+        modelo=veiculo.modelo,
+        cor=veiculo.cor,
+        ano=veiculo.ano,
+        status_roubo=veiculo.status_roubo,
+        data_ocorrencia=veiculo.data_ocorrencia,
+        boletim_ocorrencia=veiculo.boletim_ocorrencia,
+        cidade=veiculo.cidade,
+        estado=veiculo.estado
+    )
+    if sucesso:
+        return {"sucesso": True, "mensagem": f"Veículo {veiculo.placa} cadastrado com sucesso!"}
+    else:
+        raise HTTPException(status_code=500, detail="Erro ao salvar veículo no banco.")
+
+if __name__ == "__main__":
+    import uvicorn
+    print("\n[VisionALPR] Iniciando servidor web ultraleve em http://127.0.0.1:8000")
+    uvicorn.run("src.server:app", host="127.0.0.1", port=8000, reload=True)
