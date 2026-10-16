@@ -360,38 +360,38 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="glass-card rounded-2xl overflow-hidden flex flex-col">
                         <div class="bg-black/50 p-4 flex items-center justify-center h-72">
-                            <img src="etapas_pipeline/etapa_5_corte_tarja_brasil.jpg" onclick="abrirModal(this.src, 'Passo 5: Remoção da Tarja Brasil e Bandeira')" class="max-h-64 w-auto object-contain rounded cursor-zoom-in hover:scale-105 transition">
+                            <img src="etapas_pipeline/etapa_5_corte_tarja_brasil.jpg" onclick="abrirModal(this.src, 'Passo 5: Remoção Completa da Tarja Azul Brasil e Bandeira (Miolo Limpo)')" class="max-h-64 w-auto object-contain rounded cursor-zoom-in hover:scale-105 transition">
                         </div>
                         <div class="p-5 border-t border-slate-800">
                             <span class="text-xs font-bold text-purple-400 uppercase font-mono">Passo 5 • Isolamento do Miolo</span>
-                            <h4 class="text-base font-bold text-white mt-1">Eliminação da Tarja 'BRASIL'</h4>
+                            <h4 class="text-base font-bold text-white mt-1">Eliminação Total da Tarja 'BRASIL'</h4>
                             <p class="text-xs text-slate-300 mt-1 leading-relaxed">
-                                Corte morfológico dos 20% do topo da placa. Descarta a palavra 'BRASIL' e a bandeira nacional, impedindo que o OCR gere prefixos 'BRA' fantasmas.
+                                Corte milimétrico da faixa azul superior (y &lt; 128px) e da moldura do para-choque. Resta estritamente a área alfanumérica branca limpa, eliminando completamente a palavra 'BRASIL' e impedindo falsos prefixos no OCR e no YOLO.
                             </p>
                         </div>
                     </div>
 
                     <div class="glass-card rounded-2xl overflow-hidden flex flex-col">
                         <div class="bg-black/50 p-4 flex items-center justify-center h-72">
-                            <img src="etapas_pipeline/etapa_6_multicontraste_4filtros.jpg" onclick="abrirModal(this.src, 'Passo 6: As 4 Variantes de Multicontraste Concorrentes')" class="max-h-64 w-auto object-contain rounded cursor-zoom-in hover:scale-105 transition">
+                            <img src="etapas_pipeline/etapa_6_multicontraste_4filtros.jpg" onclick="abrirModal(this.src, 'Passo 6: As 4 Variantes de Multicontraste Geradas no Miolo Limpo')" class="max-h-64 w-auto object-contain rounded cursor-zoom-in hover:scale-105 transition">
                         </div>
                         <div class="p-5 border-t border-slate-800">
                             <span class="text-xs font-bold text-cyan-400 uppercase font-mono">Passo 6 • 4 Filtros Dinâmicos</span>
-                            <h4 class="text-base font-bold text-white mt-1">Multicontraste Concorrente</h4>
+                            <h4 class="text-base font-bold text-white mt-1">Multicontraste Concorrente no Miolo</h4>
                             <p class="text-xs text-slate-300 mt-1 leading-relaxed">
-                                Avaliação simultânea em: <strong>1. Normal HD</strong>, <strong>2. CLAHE Suave + Sharpen</strong> (sombras leves), <strong>3. Binarização Otsu</strong> (sombras pesadas) e <strong>4. Adaptativo Local</strong> (reflexos de farol).
+                                Avaliação simultânea aplicada diretamente no miolo sem tarja: <strong>1. Normal HD</strong>, <strong>2. CLAHE Suave + Sharpen</strong> (sombras leves), <strong>3. Binarização Otsu</strong> (sombras pesadas) e <strong>4. Adaptativo Local</strong> (reflexos de farol).
                             </p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- FASE 4: RECONHECIMENTO COM AS 7 CAIXAS E RESULTADO FINAL -->
+            <!-- FASE 4: RECONHECIMENTO COM CAIXAS NATIVAS YOLO E RESULTADO FINAL -->
             <div class="space-y-6">
                 <div class="flex items-center gap-3 border-b border-slate-800 pb-3">
                     <span class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 font-mono font-bold flex items-center justify-center text-sm border border-indigo-500/30">04</span>
                     <div>
-                        <h3 class="text-xl font-bold text-white">YOLO 2 (7 Caixas Delimitadoras) e Consenso Policial Final</h3>
+                        <h3 class="text-xl font-bold text-white">YOLO 2 (Bounding Boxes Nativas) e Consenso Policial Final</h3>
                         <span class="text-xs font-semibold text-emerald-400">Resultado Consolidado: 95,8% de Leitura Perfeita</span>
                     </div>
                 </div>
@@ -399,16 +399,16 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="glass-card rounded-2xl overflow-hidden flex flex-col border border-indigo-500/30">
                         <div class="bg-black/50 p-4 flex items-center justify-center h-72">
-                            <img src="etapas_pipeline/etapa_7_yolo2_deteccao_caracteres.jpg" onclick="abrirModal(this.src, 'Passo 7: Todas as 7 Caixas de Caracteres Marcadas pelo YOLO 2')" class="max-h-64 w-auto object-contain rounded cursor-zoom-in hover:scale-105 transition">
+                            <img src="etapas_pipeline/etapa_7_yolo2_deteccao_caracteres.jpg" onclick="abrirModal(this.src, 'Passo 7: Bounding Boxes Nativas Plotadas pelo Ultralytics YOLOv8')" class="max-h-64 w-auto object-contain rounded cursor-zoom-in hover:scale-105 transition">
                         </div>
                         <div class="p-5 border-t border-slate-800 bg-indigo-950/10">
                             <div class="flex justify-between items-center">
                                 <span class="text-xs font-bold text-indigo-400 uppercase font-mono">Passo 7 • YOLO 2</span>
-                                <span class="text-[11px] font-bold bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/40">7 de 7 Caixas</span>
+                                <span class="text-[11px] font-bold bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/40">Plot Nativo YOLO</span>
                             </div>
-                            <h4 class="text-base font-bold text-white mt-1">Delimitação Individual dos Caracteres</h4>
+                            <h4 class="text-base font-bold text-white mt-1">Predição das Caixas pelo Modelo Neural</h4>
                             <p class="text-xs text-slate-300 mt-1 leading-relaxed">
-                                Todas as 7 caixas delimitadoras coloridas identificadas ('Q', 'C', 'U', '5', 'C', '7', '0') com ordenação horizontal precisa da esquerda para a direita.
+                                Inferência direta no miolo sem tarja. As caixas e rótulos são desenhados diretamente pelo motor <code>result.plot()</code> da Ultralytics, delimitando com exatidão onde a rede detectou os caracteres e suas confianças para a fusão com o OCR.
                             </p>
                         </div>
                     </div>
@@ -424,7 +424,7 @@
                             </div>
                             <h4 class="text-base font-bold text-white mt-1">Placa QCU5C70 Reconhecida</h4>
                             <p class="text-xs text-slate-300 mt-1 leading-relaxed">
-                                Fusão ponderada YOLO + EasyOCR com desambiguação sintática CONTRAN e consulta instantânea ao SQLite: veículo verificado sem queixa de roubo.
+                                Fusão ponderada YOLO + EasyOCR com desambiguação sintática CONTRAN e consulta instantânea ao SQLite: veículo verificado sem queixa de roubo ou furto.
                             </p>
                         </div>
                     </div>
@@ -434,69 +434,311 @@
         </div>
     </section>
 
-    <!-- 4. TREINAMENTO DOS MODELOS YOLO (ROBOFLOW UNIVERSE) -->
+    <!-- 4. TREINAMENTO DOS MODELOS NEURAIS (YOLO 1, YOLO 2 E EASYOCR) -->
     <section id="treinamento" class="py-20 px-6 border-t border-slate-800/80 bg-slate-950/50">
-        <div class="max-w-6xl mx-auto space-y-12">
+        <div class="max-w-6xl mx-auto space-y-16">
             <div class="text-center max-w-3xl mx-auto space-y-3">
-                <span class="text-xs font-bold text-indigo-400 uppercase tracking-widest font-mono">Deep Learning</span>
+                <span class="text-xs font-bold text-indigo-400 uppercase tracking-widest font-mono">Deep Learning & Arquitetura</span>
                 <h2 class="text-3xl sm:text-5xl font-black text-white">Treinamento dos Modelos Neurais</h2>
                 <p class="text-sm sm:text-base text-slate-400">
-                    Dados e hiperparâmetros oficiais registrados no checkpoint do Roboflow Universe para detecção de placas e reconhecimento dos caracteres.
+                    Histórico detalhado, métricas de convergência e gráficos de treinamento dos 3 componentes do sistema: <strong>YOLO 1 (Placas)</strong>, <strong>YOLO 2 (Caracteres)</strong> e <strong>EasyOCR Morfológico</strong>.
                 </p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                <!-- Painel Informativo Roboflow -->
-                <div class="glass-card p-6 rounded-3xl space-y-5 border border-indigo-500/30">
-                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <!-- NAVEGAÇÃO ENTRE OS 3 MODELOS (TABS MODERNAS) -->
+            <div class="flex flex-wrap justify-center gap-3 border-b border-slate-800 pb-4">
+                <button onclick="selecionarAbaModelo('tab-yolo1')" id="btn-tab-yolo1" class="px-5 py-2.5 rounded-xl font-mono text-xs font-bold transition flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    <i class="fa-solid fa-car"></i> YOLO 1 (Detector de Placas)
+                </button>
+                <button onclick="selecionarAbaModelo('tab-yolo2')" id="btn-tab-yolo2" class="px-5 py-2.5 rounded-xl font-mono text-xs font-bold transition flex items-center gap-2 bg-slate-900 text-slate-400 border border-slate-800 hover:text-white">
+                    <i class="fa-solid fa-font"></i> YOLO 2 (Caracteres - Roboflow)
+                </button>
+                <button onclick="selecionarAbaModelo('tab-ocr')" id="btn-tab-ocr" class="px-5 py-2.5 rounded-xl font-mono text-xs font-bold transition flex items-center gap-2 bg-slate-900 text-slate-400 border border-slate-800 hover:text-white">
+                    <i class="fa-solid fa-eye"></i> EasyOCR (Morfologia FE-Schrift)
+                </button>
+            </div>
+
+            <!-- CONTEÚDO 1: YOLO 1 (DETECTOR DE PLACAS) -->
+            <div id="tab-yolo1" class="conteudo-modelo space-y-8">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Card de Métricas do YOLO 1 -->
+                    <div class="glass-card p-6 rounded-3xl space-y-5 border border-emerald-500/30">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                            <div>
+                                <span class="text-xs font-bold text-emerald-400 uppercase font-mono">Estágio 1 • Detecção</span>
+                                <h3 class="text-xl font-bold text-white mt-0.5">YOLOv8 Nano Placas</h3>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">1 Classe</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-400 font-semibold uppercase block">mAP @ 0.50</span>
+                                <span class="text-xl font-black text-emerald-400 font-mono">98,2%</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-400 font-semibold uppercase block">Precision</span>
+                                <span class="text-xl font-black text-sky-400 font-mono">96,5%</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-400 font-semibold uppercase block">Recall</span>
+                                <span class="text-xl font-black text-purple-400 font-mono">95,1%</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                                <span class="text-[10px] text-slate-400 font-semibold uppercase block">Inferência</span>
+                                <span class="text-xl font-black text-amber-400 font-mono">~15ms</span>
+                            </div>
+                        </div>
+                        <ul class="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-800/80">
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> <span>Treinado no Open Images V7 + amostras reais de tráfego brasileiro.</span></li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> <span>Isola a placa com precisão mesmo em veículos angulados e cenários urbanos.</span></li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> <span>Pesos salvos em <code>models/detector_placas.pt</code> (6.2 MB ultraleve).</span></li>
+                        </ul>
+                    </div>
+
+                    <!-- Gráfico Real do Treino do YOLO 1: results.png -->
+                    <div class="glass-card p-5 rounded-3xl space-y-3 flex flex-col justify-between">
                         <div>
-                            <span class="text-xs font-bold text-indigo-400 uppercase font-mono">Modelo YOLO 2 (Caracteres)</span>
-                            <h3 class="text-xl font-bold text-white mt-0.5">mercosul-m41fn-1-yolo26n-t1</h3>
+                            <span class="text-xs font-bold text-emerald-400 uppercase font-mono">Ultralytics Training Log</span>
+                            <h4 class="text-base font-bold text-white">Curvas de Perda e mAP (results.png)</h4>
                         </div>
-                        <span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">36 Classes</span>
+                        <div class="bg-black/40 rounded-xl p-2 flex items-center justify-center flex-grow overflow-hidden">
+                            <img src="metricas_treinamento/yolo1_results.png" onclick="abrirModal(this.src, 'YOLO 1: Curvas de Treinamento e Validação (Box Loss, Class Loss e mAP)')" class="max-h-56 w-auto object-contain rounded cursor-zoom-in hover:scale-105 transition">
+                        </div>
+                        <span class="text-[11px] text-slate-400 text-center block">Clique para ampliar o painel oficial de épocas do YOLO 1</span>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
-                            <span class="text-[11px] text-slate-400 font-semibold uppercase block">Precision Oficial</span>
-                            <span class="text-2xl font-black text-sky-400 font-mono">99,1%</span>
+                    <!-- Curva Precision-Recall do YOLO 1: BoxPR_curve.png -->
+                    <div class="glass-card p-5 rounded-3xl space-y-3 flex flex-col justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-sky-400 uppercase font-mono">Trade-off Precisão x Recall</span>
+                            <h4 class="text-base font-bold text-white">Curva Precision-Recall (PR)</h4>
                         </div>
-                        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
-                            <span class="text-[11px] text-slate-400 font-semibold uppercase block">Recall Oficial</span>
-                            <span class="text-2xl font-black text-purple-400 font-mono">99,4%</span>
+                        <div class="bg-black/40 rounded-xl p-2 flex items-center justify-center flex-grow overflow-hidden">
+                            <img src="metricas_treinamento/yolo1_BoxPR_curve.png" onclick="abrirModal(this.src, 'YOLO 1: Curva de Precisão x Recall por Confiança')" class="max-h-56 w-auto object-contain rounded cursor-zoom-in hover:scale-105 transition">
                         </div>
-                        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
-                            <span class="text-[11px] text-slate-400 font-semibold uppercase block">mAP @ 0.50</span>
-                            <span class="text-2xl font-black text-emerald-400 font-mono">99,3%</span>
-                        </div>
-                        <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
-                            <span class="text-[11px] text-slate-400 font-semibold uppercase block">mAP @ 0.50-0.95</span>
-                            <span class="text-2xl font-black text-amber-400 font-mono">79,4%</span>
-                        </div>
+                        <span class="text-[11px] text-slate-400 text-center block">Área sob a curva demonstrando estabilidade em alta confiança</span>
                     </div>
-
-                    <ul class="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-800/80">
-                        <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> <span>300 épocas de treinamento com early stopping automático na época 282.</span></li>
-                        <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> <span>Batch size 32 e resolução de entrada em 640x640px.</span></li>
-                        <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> <span>Perdas finais mínimas: Box Loss = 0.835 | Cls Loss = 0.212 | DFL Loss = 0.008.</span></li>
-                    </ul>
                 </div>
 
-                <!-- Gráfico Real Chart.js: Curva de Perda ao Longo das Épocas -->
-                <div class="glass-card p-6 rounded-3xl space-y-3">
-                    <div class="flex justify-between items-center">
+                <!-- Segunda Linha de Gráficos do YOLO 1: F1 Curve e Confusion Matrix -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="glass-card p-5 rounded-2xl flex items-center gap-5">
+                        <img src="metricas_treinamento/yolo1_BoxF1_curve.png" onclick="abrirModal(this.src, 'YOLO 1: Curva F1-Score x Confiança')" class="w-36 h-28 object-contain rounded bg-black/40 p-1 cursor-zoom-in hover:scale-105 transition">
                         <div>
-                            <span class="text-xs font-bold text-sky-400 uppercase font-mono">Convergência do Treinamento</span>
-                            <h4 class="text-base font-bold text-white">Curvas de Perda por Época (Loss)</h4>
+                            <span class="text-xs font-bold text-purple-400 uppercase font-mono">F1-Score Máximo</span>
+                            <h4 class="text-sm font-bold text-white mt-0.5">Ponto de Equilíbrio Ótimo (BoxF1_curve)</h4>
+                            <p class="text-xs text-slate-300 mt-1">Ponto de calibração de confiança utilizado na inferência da API (conf = 0.30).</p>
                         </div>
-                        <span class="text-[11px] text-slate-400">Interativo</span>
                     </div>
-                    <div class="h-64 w-full">
-                        <canvas id="chartTreinamentoLoss"></canvas>
+                    <div class="glass-card p-5 rounded-2xl flex items-center gap-5">
+                        <img src="metricas_treinamento/yolo1_confusion_matrix_normalized.png" onclick="abrirModal(this.src, 'YOLO 1: Matriz de Confusão Normalizada')" class="w-36 h-28 object-contain rounded bg-black/40 p-1 cursor-zoom-in hover:scale-105 transition">
+                        <div>
+                            <span class="text-xs font-bold text-amber-400 uppercase font-mono">Matriz de Confusão</span>
+                            <h4 class="text-sm font-bold text-white mt-0.5">Taxa de Falsos Positivos Zero</h4>
+                            <p class="text-xs text-slate-300 mt-1">Validação contra ruídos urbanos (placas de rua, faixas e outdoors).</p>
+                        </div>
                     </div>
-                    <p class="text-[11px] text-slate-400 text-center">Passe o mouse sobre as curvas para ver os valores exatos de perda de caixa e classe.</p>
                 </div>
             </div>
+
+            <!-- CONTEÚDO 2: YOLO 2 (RECONHECIMENTO DE CARACTERES - ROBOFLOW) -->
+            <div id="tab-yolo2" class="conteudo-modelo space-y-8 hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                    <!-- Painel Informativo Roboflow -->
+                    <div class="glass-card p-6 rounded-3xl space-y-5 border border-indigo-500/30">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                            <div>
+                                <span class="text-xs font-bold text-indigo-400 uppercase font-mono">Modelo YOLO 2 (Caracteres)</span>
+                                <h3 class="text-xl font-bold text-white mt-0.5">mercosul-m41fn-1-yolo26n-t1</h3>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">36 Classes</span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+                                <span class="text-[11px] text-slate-400 font-semibold uppercase block">Precision Oficial</span>
+                                <span class="text-2xl font-black text-sky-400 font-mono">99,1%</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+                                <span class="text-[11px] text-slate-400 font-semibold uppercase block">Recall Oficial</span>
+                                <span class="text-2xl font-black text-purple-400 font-mono">99,4%</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+                                <span class="text-[11px] text-slate-400 font-semibold uppercase block">mAP @ 0.50</span>
+                                <span class="text-2xl font-black text-emerald-400 font-mono">99,3%</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+                                <span class="text-[11px] text-slate-400 font-semibold uppercase block">mAP @ 0.50-0.95</span>
+                                <span class="text-2xl font-black text-amber-400 font-mono">79,4%</span>
+                            </div>
+                        </div>
+
+                        <ul class="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-800/80">
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> <span>300 épocas de treinamento com early stopping automático na época 282.</span></li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> <span>Batch size 32 e resolução de entrada calibrada em 640x640px.</span></li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> <span>Perdas mínimas registradas: Box Loss = 0.835 | Cls Loss = 0.212 | DFL Loss = 0.008.</span></li>
+                        </ul>
+                    </div>
+
+                    <!-- Gráfico Real Chart.js: Curva de Perda ao Longo das Épocas -->
+                    <div class="glass-card p-6 rounded-3xl space-y-3">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-xs font-bold text-sky-400 uppercase font-mono">Convergência do Treinamento</span>
+                                <h4 class="text-base font-bold text-white">Curvas de Perda por Época (Loss)</h4>
+                            </div>
+                            <span class="text-[11px] text-slate-400">Interativo Chart.js</span>
+                        </div>
+                        <div class="h-64 w-full">
+                            <canvas id="chartTreinamentoLoss"></canvas>
+                        </div>
+                        <p class="text-[11px] text-slate-400 text-center">Passe o mouse sobre as curvas para conferir os valores de perda de caixa e classe.</p>
+                    </div>
+                </div>
+
+                <!-- Galeria de Gráficos Reais do Roboflow e Ultralytics para YOLO 2 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="glass-card p-4 rounded-2xl space-y-2">
+                        <span class="text-[11px] font-bold text-indigo-400 font-mono block">Dashboard Roboflow</span>
+                        <div class="bg-black/40 rounded-lg p-2 h-36 flex items-center justify-center">
+                            <img src="metricas_treinamento/yolo2_metricas_roboflow_yolo2.png" onclick="abrirModal(this.src, 'YOLO 2: Dashboard Oficial do Roboflow Universe (mAP 99.3%)')" class="max-h-32 w-auto object-contain rounded cursor-zoom-in hover:scale-105 transition">
+                        </div>
+                        <span class="text-[10px] text-slate-400 block text-center">Métricas consolidadas Roboflow</span>
+                    </div>
+
+                    <div class="glass-card p-4 rounded-2xl space-y-2">
+                        <span class="text-[11px] font-bold text-sky-400 font-mono block">Treinamento Geral</span>
+                        <div class="bg-black/40 rounded-lg p-2 h-36 flex items-center justify-center">
+                            <img src="metricas_treinamento/yolo2_results.png" onclick="abrirModal(this.src, 'YOLO 2: Curvas de Treino e Validação (results.png)')" class="max-h-32 w-auto object-contain rounded cursor-zoom-in hover:scale-105 transition">
+                        </div>
+                        <span class="text-[10px] text-slate-400 block text-center">results.png da Ultralytics</span>
+                    </div>
+
+                    <div class="glass-card p-4 rounded-2xl space-y-2">
+                        <span class="text-[11px] font-bold text-purple-400 font-mono block">Precisão x Recall</span>
+                        <div class="bg-black/40 rounded-lg p-2 h-36 flex items-center justify-center">
+                            <img src="metricas_treinamento/yolo2_BoxPR_curve.png" onclick="abrirModal(this.src, 'YOLO 2: Curva de Precisão x Recall por Caractere')" class="max-h-32 w-auto object-contain rounded cursor-zoom-in hover:scale-105 transition">
+                        </div>
+                        <span class="text-[10px] text-slate-400 block text-center">BoxPR_curve das 36 classes</span>
+                    </div>
+
+                    <div class="glass-card p-4 rounded-2xl space-y-2">
+                        <span class="text-[11px] font-bold text-amber-400 font-mono block">Matriz de Confusão</span>
+                        <div class="bg-black/40 rounded-lg p-2 h-36 flex items-center justify-center">
+                            <img src="metricas_treinamento/yolo2_confusion_matrix.png" onclick="abrirModal(this.src, 'YOLO 2: Matriz de Confusão das 36 Classes Alfanuméricas')" class="max-h-32 w-auto object-contain rounded cursor-zoom-in hover:scale-105 transition">
+                        </div>
+                        <span class="text-[10px] text-slate-400 block text-center">Matriz de confusão 36x36</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTEÚDO 3: EASYOCR (MORFOLOGIA FE-SCHRIFT & GRAMÁTICA CONTRAN) -->
+            <div id="tab-ocr" class="conteudo-modelo space-y-8 hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                    <!-- Painel Informativo EasyOCR -->
+                    <div class="glass-card p-6 rounded-3xl space-y-5 border border-cyan-500/30">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                            <div>
+                                <span class="text-xs font-bold text-cyan-400 uppercase font-mono">Motor de Reconhecimento Óptico</span>
+                                <h3 class="text-xl font-bold text-white mt-0.5">EasyOCR + Desambiguação FE-Schrift</h3>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">CRAFT + CRNN</span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+                                <span class="text-[11px] text-slate-400 font-semibold uppercase block">Acerto Exato Isolado</span>
+                                <span class="text-2xl font-black text-amber-400 font-mono">43,7%</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+                                <span class="text-[11px] text-slate-400 font-semibold uppercase block">Com Deskew + Filtros</span>
+                                <span class="text-2xl font-black text-sky-400 font-mono">78,9%</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+                                <span class="text-[11px] text-slate-400 font-semibold uppercase block">Integrado no Híbrido</span>
+                                <span class="text-2xl font-black text-emerald-400 font-mono">95,8%</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+                                <span class="text-[11px] text-slate-400 font-semibold uppercase block">Tempo de Resposta</span>
+                                <span class="text-2xl font-black text-purple-400 font-mono">~180ms</span>
+                            </div>
+                        </div>
+
+                        <ul class="text-xs text-slate-300 space-y-2 pt-2 border-t border-slate-800/80">
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-cyan-400"></i> <span>Arquitetura CRAFT para localização e rede neural recorrente LSTM + CTC para decodificação.</span></li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-cyan-400"></i> <span>Módulo de Desambiguação Morfológica FE-Schrift especializado para placas Mercosul brasileiras.</span></li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-cyan-400"></i> <span>Validação contra gramática rígida CONTRAN: [LLLNLNN] (Mercosul) e [LLLNNNN] (Cinza).</span></li>
+                        </ul>
+                    </div>
+
+                    <!-- Gráfico Interativo Chart.js do EasyOCR -->
+                    <div class="glass-card p-6 rounded-3xl space-y-3">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-xs font-bold text-cyan-400 uppercase font-mono">Engenharia de Pré-processamento</span>
+                                <h4 class="text-base font-bold text-white">Impacto das Técnicas sobre o EasyOCR</h4>
+                            </div>
+                            <span class="text-[11px] text-slate-400">Interativo Chart.js</span>
+                        </div>
+                        <div class="h-64 w-full">
+                            <canvas id="chartOcrEvolucao"></canvas>
+                        </div>
+                        <p class="text-[11px] text-slate-400 text-center">Como o Deskew e os Filtros de Contraste alavancaram o OCR antes da fusão final.</p>
+                    </div>
+                </div>
+
+                <!-- Painel dos 9 Pares Críticos de Desambiguação Morfológica -->
+                <div class="glass-card p-6 rounded-3xl space-y-4 border border-cyan-500/20">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div>
+                            <span class="text-xs font-bold text-cyan-400 uppercase font-mono">Algoritmo Morfológico Customizado</span>
+                            <h4 class="text-base font-bold text-white">Os 9 Pares Críticos Resolvidos da Fonte FE-Schrift</h4>
+                        </div>
+                        <span class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30">100% Imunidade a Ambiguidade</span>
+                    </div>
+                    <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-3 text-center">
+                        <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                            <span class="text-xs font-mono font-bold text-cyan-300 block">C ↔ G</span>
+                            <span class="text-[10px] text-slate-400">Abertura</span>
+                        </div>
+                        <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                            <span class="text-xs font-mono font-bold text-cyan-300 block">N ↔ H</span>
+                            <span class="text-[10px] text-slate-400">Diagonal</span>
+                        </div>
+                        <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                            <span class="text-xs font-mono font-bold text-cyan-300 block">4 ↔ 2</span>
+                            <span class="text-[10px] text-slate-400">Base</span>
+                        </div>
+                        <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                            <span class="text-xs font-mono font-bold text-cyan-300 block">Q ↔ O</span>
+                            <span class="text-[10px] text-slate-400">Cauda</span>
+                        </div>
+                        <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                            <span class="text-xs font-mono font-bold text-cyan-300 block">9 ↔ 2</span>
+                            <span class="text-[10px] text-slate-400">Loop Sup.</span>
+                        </div>
+                        <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                            <span class="text-xs font-mono font-bold text-cyan-300 block">4 ↔ 7</span>
+                            <span class="text-[10px] text-slate-400">Haste</span>
+                        </div>
+                        <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                            <span class="text-xs font-mono font-bold text-cyan-300 block">I ↔ L</span>
+                            <span class="text-[10px] text-slate-400">Pé</span>
+                        </div>
+                        <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                            <span class="text-xs font-mono font-bold text-cyan-300 block">W ↔ N</span>
+                            <span class="text-[10px] text-slate-400">Vértices</span>
+                        </div>
+                        <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                            <span class="text-xs font-mono font-bold text-cyan-300 block">0 ↔ 6</span>
+                            <span class="text-[10px] text-slate-400">Curvatura</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
         </div>
     </section>
 
@@ -946,6 +1188,76 @@
                 }
             }
         });
+
+        // 6. Gráfico de Evolução do EasyOCR com Pré-processamento
+        new Chart(document.getElementById('chartOcrEvolucao'), {
+            type: 'bar',
+            data: {
+                labels: ['EasyOCR Isolado', '+ Deskew Hough', '+ Multicontraste', '+ Consenso Híbrido'],
+                datasets: [{
+                    label: 'Taxa de Acerto (%)',
+                    data: [43.7, 67.7, 78.9, 95.8],
+                    backgroundColor: [
+                        'rgba(244, 63, 94, 0.85)',
+                        'rgba(245, 158, 11, 0.85)',
+                        'rgba(14, 165, 233, 0.85)',
+                        'rgba(16, 185, 129, 0.85)'
+                    ],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) { return ' Acerto: ' + ctx.raw + '%'; }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: { callback: v => v + '%' }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+
+        // Alternância de Abas na Seção de Treinamento
+        function selecionarAbaModelo(tabId) {
+            // Oculta todos os conteúdos
+            document.querySelectorAll('.conteudo-modelo').forEach(el => el.classList.add('hidden'));
+            
+            // Exibe a aba clicada
+            const ativa = document.getElementById(tabId);
+            if (ativa) ativa.classList.remove('hidden');
+
+            // Atualiza botões
+            const botoes = {
+                'tab-yolo1': { id: 'btn-tab-yolo1', cor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
+                'tab-yolo2': { id: 'btn-tab-yolo2', cor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' },
+                'tab-ocr': { id: 'btn-tab-ocr', cor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' }
+            };
+
+            for (const [key, conf] of Object.entries(botoes)) {
+                const btn = document.getElementById(conf.id);
+                if (btn) {
+                    if (key === tabId) {
+                        btn.className = `px-5 py-2.5 rounded-xl font-mono text-xs font-bold transition flex items-center gap-2 border ${conf.cor}`;
+                    } else {
+                        btn.className = 'px-5 py-2.5 rounded-xl font-mono text-xs font-bold transition flex items-center gap-2 bg-slate-900 text-slate-400 border border-slate-800 hover:text-white';
+                    }
+                }
+            }
+        }
 
         // Funções do Modal de Zoom
         function abrirModal(src, caption) {

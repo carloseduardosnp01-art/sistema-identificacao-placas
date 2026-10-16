@@ -38,3 +38,5 @@ data/*.png
 !relatorios_benchmark/*.png
 !data/resultados treinamento*/**
 !data/resultados treinamento*/*
+!apresentacao/etapas_pipeline/*.jpg
+!apresentacao/metricas_treinamento/*.png

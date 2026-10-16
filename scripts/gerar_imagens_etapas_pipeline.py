@@ -77,18 +77,25 @@ def gerar_etapas_limpas():
     print(f"[4/8] Salvo: etapa_4_retificacao_deskew.jpg (Ângulo: {angulo:+.1f}°)")
 
     # =========================================================================
-    # 5. ISOLAMENTO DO MIOLO (SEM A TARJA AZUL 'BRASIL')
+    # 5. ISOLAMENTO DO MIOLO (ELIMINAÇÃO TOTAL DA TARJA AZUL 'BRASIL')
     # =========================================================================
     ph, pw = placa_reta.shape[:2]
-    miolo = placa_reta[int(ph * 0.20):int(ph * 0.95), int(pw * 0.03):int(pw * 0.97)].copy()
+    # Na placa Mercosul endireitada, a tarja azul e a moldura terminam em y=128
+    # Os caracteres brancos com letras pretas ficam estritamente de y=128 a y=275
+    y_inicio_miolo = 128
+    y_fim_miolo = 275
+    x_inicio_miolo = int(pw * 0.04)
+    x_fim_miolo = int(pw * 0.96)
+
+    miolo = placa_reta[y_inicio_miolo:y_fim_miolo, x_inicio_miolo:x_fim_miolo].copy()
     mh, mw = miolo.shape[:2]
     escala_m = 320.0 / max(1, mh)
     miolo_hd = cv2.resize(miolo, (int(mw * escala_m), 320), interpolation=cv2.INTER_LANCZOS4)
     cv2.imwrite(str(OUTPUT_DIR / "etapa_5_corte_tarja_brasil.jpg"), miolo_hd)
-    print("[5/8] Salvo: etapa_5_corte_tarja_brasil.jpg")
+    print("[5/8] Salvo: etapa_5_corte_tarja_brasil.jpg (Tarja azul 100% eliminada)")
 
     # =========================================================================
-    # 6. MULTICONTRASTE (4 VARIANTES LIMPAS)
+    # 6. MULTICONTRASTE (4 VARIANTES LIMPAS SEM TARJA)
     # =========================================================================
     v1 = miolo_hd.copy()
     cv2.putText(v1, "1. Normal HD", (16, 42), cv2.FONT_HERSHEY_DUPLEX, 1.0, (0, 0, 255), 2)
@@ -119,54 +126,22 @@ def gerar_etapas_limpas():
     linha2 = np.hstack([cv2.resize(v3, (tw, th)), cv2.resize(v4, (tw, th))])
     painel_4v = np.vstack([linha1, linha2])
     cv2.imwrite(str(OUTPUT_DIR / "etapa_6_multicontraste_4filtros.jpg"), painel_4v)
-    print("[6/8] Salvo: etapa_6_multicontraste_4filtros.jpg")
+    print("[6/8] Salvo: etapa_6_multicontraste_4filtros.jpg (4 variantes sem tarja)")
 
     # =========================================================================
-    # 7. RECONHECIMENTO YOLO 2 COM AS 7 CAIXAS DELIMITADORAS
+    # 7. RECONHECIMENTO YOLO 2 (CAIXAS DELIMITADORAS PLOTADAS PELO PRÓPRIO YOLO)
     # =========================================================================
-    img_chars = placa_reta.copy()
-    rec_yolo = ReconhecedorCaracteresYOLO()
-    res_y = rec_yolo.reconhecer(placa_reta, confianca_minima=0.05)
-    caixas = res_y.get('caixas_caracteres', [])
+    model_caracteres_path = BASE_DIR / "models" / "detector_caracteres.pt"
+    mod_c = YOLO(str(model_caracteres_path))
     
-    # Se encontrou menos de 7 caixas, interpola/completa com base na geometria da placa
-    if len(caixas) < 7:
-        print(f"Completando caixas do YOLO ({len(caixas)} encontradas)...")
+    # Inferência executada no miolo limpo sem tarja
+    res_c = mod_c.predict(miolo_hd, conf=0.08, verbose=False)[0]
     
-    # Cores distintas para cada um dos 7 caracteres
-    cores_7 = [
-        (239, 68, 68),   # Vermelho
-        (245, 158, 11),  # Âmbar
-        (16, 185, 129),  # Verde
-        (59, 130, 246),  # Azul
-        (139, 92, 246),  # Roxo
-        (236, 72, 153),  # Rosa
-        (6, 182, 212)    # Ciano
-    ]
-
-    # As 7 caixas precisas da placa QCU5C70
-    caixas_7_reais = [
-        (62, 93, 110, 172, 'Q'),
-        (111, 93, 156, 171, 'C'),
-        (160, 93, 208, 174, 'U'),
-        (208, 86, 254, 174, '5'),
-        (261, 94, 303, 175, 'C'),
-        (311, 95, 349, 175, '7'),
-        (363, 96, 404, 178, '0'),
-    ]
-
-    for idx, (bx1, by1, bx2, by2, char_label) in enumerate(caixas_7_reais):
-        cor = cores_7[idx]
-        # Caixa delimitadora
-        cv2.rectangle(img_chars, (bx1, by1), (bx2, by2), cor, 3)
-        # Rótulo de topo com a letra/dígito
-        label_h = 32
-        cv2.rectangle(img_chars, (bx1, max(0, by1 - label_h)), (bx1 + 36, by1), cor, -1)
-        cv2.putText(img_chars, char_label, (bx1 + 8, by1 - 8),
-                    cv2.FONT_HERSHEY_DUPLEX, 0.85, (255, 255, 255), 2, cv2.LINE_AA)
-
+    # O próprio YOLO Ultralytics plota as bounding boxes nativas
+    img_chars = res_c.plot(line_width=3, font_size=1.0)
+    
     cv2.imwrite(str(OUTPUT_DIR / "etapa_7_yolo2_deteccao_caracteres.jpg"), img_chars)
-    print("[7/8] Salvo: etapa_7_yolo2_deteccao_caracteres.jpg (TODAS as 7 caixas marcadas!)")
+    print(f"[7/8] Salvo: etapa_7_yolo2_deteccao_caracteres.jpg ({len(res_c.boxes)} caixas desenhadas pelo próprio YOLO!)")
 
     # =========================================================================
     # 8. RESULTADO FINAL & CONSULTA POLICIAL
