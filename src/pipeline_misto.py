@@ -217,12 +217,13 @@ def normalizar_prefixo_serie_contran(texto: str) -> str:
     # 14. Série SPM de SP: 'SPH' ou 'SPN' -> 'SPM' (não existe SPH no Brasil)
     if t[0] == 'S' and t[1] == 'P' and t[2] in ['H', 'N']:
         t[2] = 'M'
-    # 15. Série MWX de Goiás/Tocantins: 'TNX', 'NWX', 'MNX', 'HWX' -> 'MWX'
-    if t[0] in ['T', 'N', 'M', 'H'] and t[1] in ['W', 'N', 'K'] and t[2] == 'X':
+    # 15. Série MWX de Goiás/Tocantins: 'TNX', 'NWX', 'MNX', 'HWX', 'MVX' -> 'MWX'
+    if t[0] in ['T', 'N', 'M', 'H'] and t[1] in ['W', 'V', 'N', 'K'] and t[2] == 'X':
         t[0] = 'M'
         t[1] = 'W'
-    # 16. Série EIB de SP: dígito 0 na posição 3 ('EIB6', 'EIBG', 'EIBD', 'EIBO' -> 'EIB0')
-    if t[0] == 'E' and t[1] == 'I' and t[2] == 'B':
+    # 16. Série EIB de SP: 'EIH', 'EI8' -> 'EIB', e dígito 0 na posição 3 ('EIB6', 'EIBG', 'EIBD', 'EIBO' -> 'EIB0')
+    if t[0] == 'E' and t[1] == 'I' and t[2] in ['B', 'H', '8']:
+        t[2] = 'B'
         if t[3] in ['6', 'G', 'D', 'O', 'Q', 'C']:
             t[3] = '0'
         if t[5] in ['D', 'O', 'G', '6']:

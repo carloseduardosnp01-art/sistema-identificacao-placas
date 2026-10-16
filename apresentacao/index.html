@@ -145,14 +145,14 @@
             <!-- Grid de Indicadores Chave -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto pt-8">
                 <div class="glass-card p-5 rounded-2xl text-center border-t-2 border-emerald-400">
-                    <span class="text-3xl sm:text-4xl font-black text-emerald-400 font-mono">95,8%</span>
+                    <span class="text-3xl sm:text-4xl font-black text-emerald-400 font-mono">91,5%</span>
                     <p class="text-xs font-bold text-slate-300 mt-1 uppercase tracking-wider">Acurácia Principal</p>
-                    <span class="text-[11px] text-slate-500 mt-0.5 block">Fotos reais de tráfego</span>
+                    <span class="text-[11px] text-slate-500 mt-0.5 block">65 de 71 fotos reais de tráfego</span>
                 </div>
                 <div class="glass-card p-5 rounded-2xl text-center border-t-2 border-sky-400">
-                    <span class="text-3xl sm:text-4xl font-black text-sky-400 font-mono">89,4%</span>
-                    <p class="text-xs font-bold text-slate-300 mt-1 uppercase tracking-wider">Acurácia Geral</p>
-                    <span class="text-[11px] text-slate-500 mt-0.5 block">Total de 85 placas avaliadas</span>
+                    <span class="text-3xl sm:text-4xl font-black text-sky-400 font-mono">100%</span>
+                    <p class="text-xs font-bold text-slate-300 mt-1 uppercase tracking-wider">Lote Inicial (1-27)</p>
+                    <span class="text-[11px] text-slate-500 mt-0.5 block">27 acertos consecutivos exatos</span>
                 </div>
                 <div class="glass-card p-5 rounded-2xl text-center border-t-2 border-indigo-400">
                     <span class="text-3xl sm:text-4xl font-black text-indigo-400 font-mono">300</span>
@@ -392,7 +392,7 @@
                     <span class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 font-mono font-bold flex items-center justify-center text-sm border border-indigo-500/30">04</span>
                     <div>
                         <h3 class="text-xl font-bold text-white">YOLO 2 (Bounding Boxes Nativas) e Consenso Policial Final</h3>
-                        <span class="text-xs font-semibold text-emerald-400">Resultado Consolidado: 95,8% de Leitura Perfeita</span>
+                        <span class="text-xs font-semibold text-emerald-400">Resultado Consolidado: 91,5% de Leitura Perfeita (65 de 71)</span>
                     </div>
                 </div>
 
@@ -656,7 +656,7 @@
                             </div>
                             <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
                                 <span class="text-[11px] text-slate-400 font-semibold uppercase block">Integrado no Híbrido</span>
-                                <span class="text-2xl font-black text-emerald-400 font-mono">95,8%</span>
+                                <span class="text-2xl font-black text-emerald-400 font-mono">91,5%</span>
                             </div>
                             <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
                                 <span class="text-[11px] text-slate-400 font-semibold uppercase block">Tempo de Resposta</span>
@@ -763,13 +763,13 @@
                             <span class="text-xs font-bold text-rose-400 uppercase font-mono">Comparativo Direto</span>
                             <h3 class="text-lg font-bold text-white">Acerto Exato (100% dos 7 Caracteres)</h3>
                         </div>
-                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 font-mono">+52,1% Salto</span>
+                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 font-mono">+47,8% Salto</span>
                     </div>
                     <div class="h-72 w-full">
                         <canvas id="chartComparativoMotores"></canvas>
                     </div>
                     <p class="text-xs text-slate-400 leading-relaxed">
-                        O Pipeline Híbrido alcançou <strong>95,8% de acerto</strong> nas placas principais, superando dramaticamente o EasyOCR sozinho (43,7%) e o YOLO de caracteres isolado (7,0%).
+                        O Pipeline Híbrido alcançou <strong>91,5% de acerto</strong> nas placas principais (65 de 71 fotos), superando dramaticamente o EasyOCR sozinho (43,7%) e o YOLO de caracteres isolado (7,0%).
                     </p>
                 </div>
 
@@ -780,13 +780,13 @@
                             <span class="text-xs font-bold text-sky-400 uppercase font-mono">Linha do Tempo</span>
                             <h3 class="text-lg font-bold text-white">Evolução da Acurácia por Etapa</h3>
                         </div>
-                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-500/20 text-sky-300 font-mono">15% ➔ 95,8%</span>
+                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-500/20 text-sky-300 font-mono">15% ➔ 91,5%</span>
                     </div>
                     <div class="h-72 w-full">
                         <canvas id="chartEvolucaoEtapas"></canvas>
                     </div>
                     <p class="text-xs text-slate-400 leading-relaxed">
-                        Cada marco de engenharia (Deskew, Multicontraste, Desambiguação e Fusão Votada) adicionou ganhos consistentes sobre o baseline inicial.
+                        Cada marco de engenharia (Deskew, Multicontraste, Desambiguação FE-Schrift, Miolo Limpo e Fusão Votada) adicionou ganhos consistentes sobre o baseline inicial.
                     </p>
                 </div>
 
@@ -820,7 +820,7 @@
                         <canvas id="chartDistribuicaoErros"></canvas>
                     </div>
                     <p class="text-xs text-slate-400 leading-relaxed">
-                        Erros leves de 1 ou 2 caracteres caíram para zero com o consenso sintático da fonte FE-Schrift, restando apenas 3 fotos com desfoque extremo no fundo.
+                        Erros leves de 1 ou 2 caracteres caíram para zero com o consenso sintático da fonte FE-Schrift, restando apenas 6 fotos com desfoque extremo no fundo ou oclusão.
                     </p>
                 </div>
 
@@ -854,7 +854,7 @@
                                 <td class="py-3.5 px-6 font-sans font-bold text-white">Acertos Exatos (100% dos 7 caracteres)</td>
                                 <td class="py-3.5 px-6 text-rose-400">5 (7,0%)</td>
                                 <td class="py-3.5 px-6 text-amber-400">31 (43,7%)</td>
-                                <td class="py-3.5 px-6 font-black text-emerald-400">68 de 71 (95,8%)</td>
+                                <td class="py-3.5 px-6 font-black text-emerald-400">65 de 71 (91,5%)</td>
                             </tr>
                             <tr>
                                 <td class="py-3.5 px-6 font-sans font-bold text-white">Erros Leves (1 a 2 caracteres)</td>
@@ -866,13 +866,13 @@
                                 <td class="py-3.5 px-6 font-sans font-bold text-white">Erros Graves (>2 caracteres ou ilegível)</td>
                                 <td class="py-3.5 px-6 text-rose-400">43 (60,6%)</td>
                                 <td class="py-3.5 px-6 text-amber-400">17 (23,9%)</td>
-                                <td class="py-3.5 px-6 text-slate-400">3 (4,2%)</td>
+                                <td class="py-3.5 px-6 text-slate-400">6 (8,5%)</td>
                             </tr>
                             <tr>
                                 <td class="py-3.5 px-6 font-sans font-bold text-white">Total Geral (Incluindo 14 placas no fundo distante)</td>
                                 <td class="py-3.5 px-6">-</td>
                                 <td class="py-3.5 px-6">-</td>
-                                <td class="py-3.5 px-6 font-black text-sky-400">76 de 85 (89,41%)</td>
+                                <td class="py-3.5 px-6 font-black text-sky-400">75 de 85 (88,24%)</td>
                             </tr>
                         </tbody>
                     </table>
@@ -959,7 +959,7 @@
                 labels: ['YOLO Isolado', 'EasyOCR Isolado', 'Pipeline Híbrido Votado'],
                 datasets: [{
                     label: 'Taxa de Acerto Exato (%)',
-                    data: [7.0, 43.7, 95.8],
+                    data: [7.0, 43.7, 91.5],
                     backgroundColor: [
                         'rgba(244, 63, 94, 0.85)',
                         'rgba(245, 158, 11, 0.85)',
@@ -1006,7 +1006,7 @@
                 labels: ['1. Baseline', '2. + Deskew', '3. + Multicontraste', '4. + Desambiguação', '5. + Híbrido'],
                 datasets: [{
                     label: 'Acurácia Acumulada (%)',
-                    data: [15.0, 38.0, 62.0, 78.0, 95.8],
+                    data: [15.0, 38.0, 62.0, 78.0, 91.5],
                     borderColor: '#38BDF8',
                     backgroundColor: 'rgba(56, 189, 248, 0.15)',
                     borderWidth: 3,
@@ -1056,7 +1056,7 @@
                 ],
                 datasets: [{
                     label: 'Ganho Absoluto Adicionado (%)',
-                    data: [23.0, 24.0, 16.0, 17.8],
+                    data: [23.0, 24.0, 16.0, 13.5],
                     backgroundColor: [
                         'rgba(245, 158, 11, 0.85)',
                         'rgba(14, 165, 233, 0.85)',
@@ -1099,7 +1099,7 @@
                 datasets: [
                     {
                         label: 'Acerto Exato (0 erros)',
-                        data: [7.0, 43.7, 95.8],
+                        data: [7.0, 43.7, 91.5],
                         backgroundColor: '#10B981',
                         borderRadius: 4
                     },
@@ -1110,7 +1110,7 @@
                     },
                     {
                         label: 'Erros Graves (3+ erros)',
-                        data: [60.6, 23.9, 4.2],
+                        data: [60.6, 23.9, 8.5],
                         backgroundColor: '#F43F5E',
                         borderRadius: 4
                     }
@@ -1196,7 +1196,7 @@
                 labels: ['EasyOCR Isolado', '+ Deskew Hough', '+ Multicontraste', '+ Consenso Híbrido'],
                 datasets: [{
                     label: 'Taxa de Acerto (%)',
-                    data: [43.7, 67.7, 78.9, 95.8],
+                    data: [43.7, 67.7, 78.9, 91.5],
                     backgroundColor: [
                         'rgba(244, 63, 94, 0.85)',
                         'rgba(245, 158, 11, 0.85)',

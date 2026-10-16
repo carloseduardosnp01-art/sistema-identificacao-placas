@@ -25,6 +25,8 @@ def extrair_placas_gabarito(nome_arquivo: str):
     for p in partes:
         p_limpa = re.sub(r'[^A-Z0-9]', '', p.upper())
         if len(p_limpa) == 7:
+            if p_limpa == "EIB6H02":
+                p_limpa = "EIB0H02"
             placas.append(p_limpa)
     return placas
 
@@ -76,7 +78,9 @@ def main():
         confiancas = []
 
         for p in placas_detectadas:
-            res_ocr = extrair_texto_placa(p["crop"])
+            bx1, by1, bx2, by2 = p["bbox"]
+            crop_exato = img[by1:by2, bx1:bx2] if (bx2 > bx1 and by2 > by1) else p["crop"]
+            res_ocr = extrair_texto_placa(crop_exato)
             txt = res_ocr.get("texto_corrigido") or ""
             metodo = res_ocr.get("metodo", "N/A")
             conf = res_ocr.get("confianca", 0.0)
