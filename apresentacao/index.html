@@ -897,7 +897,7 @@
                 </p>
             </div>
 
-            <!-- Grid 2x2 de Gráficos Interativos Chart.js -->
+            <!-- Grid 3x2 de Gráficos Interativos Chart.js -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="panel rounded-2xl p-6 space-y-3">
                     <div class="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -960,6 +960,38 @@
                     </div>
                     <p class="text-xs text-slate-400">
                         As primeiras 40 fotos reúnem <strong>47 placas</strong>: PaddleOCR acertou 45/47 (95,74%) e Fast-Plate CCT-XS/S 43/47 (91,49%). No teste isolado de 1 placa/foto (71 fotos), YOLO 2 acertou 5/71 (7,0%) e EasyOCR 34/71 (47,9%).
+                    </p>
+                </div>
+
+                <div class="panel rounded-2xl p-6 space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div>
+                            <span class="text-[11px] font-mono font-bold text-indigo-400 uppercase">Eficiência de Armazenamento</span>
+                            <h3 class="text-base font-bold text-white">Tamanho dos Pesos Neurais em Disco (MiB)</h3>
+                        </div>
+                        <span class="text-[11px] font-mono px-2.5 py-1 rounded-full bg-indigo-500/15 text-indigo-300">3,19 MiB ONNX</span>
+                    </div>
+                    <div class="h-64 w-full">
+                        <canvas id="chartTamanhoModelos"></canvas>
+                    </div>
+                    <p class="text-xs text-slate-400">
+                        Medição real dos arquivos de pesos em disco: Fast-Plate CCT-XS ocupa <strong>3,19 MiB</strong> (3,34 MB), contra <strong>93,99 MiB</strong> do EasyOCR (CRAFT + latin_g2) e <strong>132,01 MiB</strong> do PaddleOCR PP-OCRv6 (det + rec).
+                    </p>
+                </div>
+
+                <div class="panel rounded-2xl p-6 space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div>
+                            <span class="text-[11px] font-mono font-bold text-emerald-400 uppercase">Trajetória Medida (85 Placas)</span>
+                            <h3 class="text-base font-bold text-white">Evolução da Acurácia Exata do Projeto</h3>
+                        </div>
+                        <span class="text-[11px] font-mono px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300">12,9% &rarr; 94,1%</span>
+                    </div>
+                    <div class="h-64 w-full">
+                        <canvas id="chartEvolucaoEtapas"></canvas>
+                    </div>
+                    <p class="text-xs text-slate-400">
+                        Progressão real medida nos relatórios CSV sobre as mesmas 85 placas: dos primeiros testes com YOLO Caracteres (12,9%) e EasyOCR CLAHE (24,7%) até Fast-Plate CCT-XS (91,8%) e PaddleOCR + CONTRAN (94,1%).
                     </p>
                 </div>
             </div>
@@ -1351,7 +1383,117 @@
             }
         });
 
-        // 5. Curvas reais de treino do YOLO 2 extraídas do checkpoint detector_caracteres.pt
+        // 5. Tamanho real dos pesos neurais em disco (MiB, medidos nos arquivos .onnx/.pt/.pth/.pdiparams)
+        new Chart(document.getElementById('chartTamanhoModelos'), {
+            type: 'bar',
+            data: {
+                labels: [
+                    'Fast-Plate CCT-XS',
+                    'Fast-Plate CCT-S',
+                    'YOLO 2 (.pt)',
+                    'YOLO 1 (best.pt)',
+                    'EasyOCR (det+rec)',
+                    'PaddleOCR v6 (det+rec)'
+                ],
+                datasets: [{
+                    label: 'Tamanho em Disco (MiB)',
+                    data: [3.19, 5.02, 5.21, 5.96, 93.99, 132.01],
+                    backgroundColor: [
+                        'rgba(16, 185, 129, 0.92)',
+                        'rgba(56, 189, 248, 0.88)',
+                        'rgba(99, 102, 241, 0.85)',
+                        'rgba(168, 85, 247, 0.85)',
+                        'rgba(245, 158, 11, 0.85)',
+                        'rgba(244, 63, 94, 0.85)'
+                    ],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => {
+                                const mbDec = ['3,34 MB', '5,26 MB', '5,46 MB', '6,25 MB', '98,56 MB', '138,43 MB'];
+                                return ` Tamanho: ${ctx.raw} MiB (${mbDec[ctx.dataIndex]})`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 150,
+                        grid: { color: 'rgba(148, 163, 184, 0.08)' },
+                        ticks: { callback: v => v + ' MiB' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 10 } }
+                    }
+                }
+            }
+        });
+
+        // 6. Evolução real da acurácia exata medida nos CSVs sobre as 85 placas
+        new Chart(document.getElementById('chartEvolucaoEtapas'), {
+            type: 'line',
+            data: {
+                labels: [
+                    '1. V1 YOLO Chars',
+                    '2. V2 EasyOCR CLAHE',
+                    '3. Misto v2 (Deskew)',
+                    '4. Misto Completo',
+                    '5. Fast-Plate CCT-XS',
+                    '6. PaddleOCR + CONTRAN'
+                ],
+                datasets: [{
+                    label: 'Acurácia Exata (%)',
+                    data: [12.94, 24.71, 45.88, 80.00, 91.76, 94.12],
+                    borderColor: '#10B981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.14)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.3,
+                    pointBackgroundColor: '#059669',
+                    pointBorderColor: '#FFFFFF',
+                    pointRadius: 5,
+                    pointHoverRadius: 7
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => {
+                                const fracoes = ['11/85', '21/85', '39/85', '68/85', '78/85', '80/85'];
+                                return ` Acerto Exato: ${ctx.raw}% (${fracoes[ctx.dataIndex]})`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 105,
+                        grid: { color: 'rgba(148, 163, 184, 0.08)' },
+                        ticks: { callback: v => v + '%' }
+                    },
+                    x: {
+                        grid: { color: 'rgba(148, 163, 184, 0.08)' },
+                        ticks: { font: { size: 10 } }
+                    }
+                }
+            }
+        });
+
+        // 7. Curvas reais de treino do YOLO 2 extraídas do checkpoint detector_caracteres.pt
         new Chart(document.getElementById('chartTreinamentoLoss'), {
             type: 'line',
             data: {
